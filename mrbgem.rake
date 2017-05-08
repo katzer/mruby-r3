@@ -34,7 +34,7 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
                    .cleanpath
                    .to_s
 
-  spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP]
+  spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP -D_GNU_SOURCE]
   spec.cc.include_paths += %W[#{r3_dir}/include #{r3_dir}/3rdparty #{pcre_h}]
 
   spec.objs += %W[
