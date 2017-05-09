@@ -49,7 +49,7 @@ end
 
 desc 'test'
 task test: :mruby do
-  mtask 'test'
+  mtask 'all test'
 end
 
 desc 'cleanup'
