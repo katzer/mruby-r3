@@ -25,3 +25,6 @@ Style/SpecialGlobalVars:
 
 Style/NumericPredicate:
   EnforcedStyle: comparison
+
+Documentation:
+  Enabled: false
