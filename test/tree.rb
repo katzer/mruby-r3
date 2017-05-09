@@ -100,6 +100,11 @@ assert 'R3::Tree#match?(str, int)' do
   assert_false setup_tree { |t| t.add '/', R3::GET }.match? '/', R3::POST
 end
 
+assert 'R3::Tree#match?(str, R3::ANY)' do
+  assert_true setup_tree { |t| t.add '/', R3::GET }.match? '/', R3::ANY
+  assert_true setup_tree { |t| t.add '/', R3::ANY }.match? '/', R3::GET
+end
+
 assert 'R3::Tree#match?()' do
   assert_raise(ArgumentError) { setup_tree.match? }
 end
@@ -134,4 +139,75 @@ end
 
 assert 'R3::Tree#mismatch?(str, int, int)' do
   assert_raise(ArgumentError) { setup_tree.mismatch? '/', 1, 1 }
+end
+
+assert 'R3::Tree#match(str)' do
+  tree = setup_tree do |t|
+    t.add '/user/{name}', R3::GET
+    t.add '/user/{name}/{age}', R3::GET
+    t.add '/user', R3::GET
+  end
+
+  params = tree.match('/other')
+  assert_kind_of Hash, params
+  assert_true params.empty?
+
+  params = tree.match('/user')
+  assert_kind_of Hash, params
+  assert_true params.empty?
+
+  params = tree.match('/user/bernd')
+  assert_equal 1, params.size
+  assert_include params, :name
+  assert_equal 'bernd', params[:name]
+
+  params = tree.match('/user/bernd/99')
+  assert_equal 2, params.size
+  assert_include params, :name
+  assert_include params, :age
+  assert_equal 'bernd', params[:name]
+  assert_equal '99', params[:age]
+end
+
+assert 'R3::Tree#match(str, int)' do
+  tree = setup_tree do |t|
+    t.add '/user/{name}', R3::GET
+    t.add '/user/{name}/{age}', R3::GET
+    t.add '/user', R3::GET
+  end
+
+  params = tree.match('/other', R3::GET)
+  assert_kind_of Hash, params
+  assert_true params.empty?
+
+  params = tree.match('/user', R3::GET)
+  assert_kind_of Hash, params
+  assert_true params.empty?
+
+  params = tree.match('/user/bernd', R3::GET)
+  assert_equal 1, params.size
+  assert_include params, :name
+  assert_equal 'bernd', params[:name]
+
+  params = tree.match('/user/bernd', R3::DELETE)
+  assert_true params.empty?
+
+  params = tree.match('/user/bernd/99', R3::GET)
+  assert_equal 2, params.size
+  assert_include params, :name
+  assert_include params, :age
+  assert_equal 'bernd', params[:name]
+  assert_equal '99', params[:age]
+end
+
+assert 'R3::Tree#match()' do
+  assert_raise(ArgumentError) { setup_tree.match }
+end
+
+assert 'R3::Tree#match(int)' do
+  assert_raise(TypeError) { setup_tree.match 1 }
+end
+
+assert 'R3::Tree#match(str, int, int)' do
+  assert_raise(ArgumentError) { setup_tree.match '/', 1, 1 }
 end

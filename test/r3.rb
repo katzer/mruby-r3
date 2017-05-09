@@ -24,6 +24,11 @@ assert 'R3' do
   assert_kind_of Module, R3
 end
 
+assert 'R3::ANY' do
+  assert_include R3.constants, :ANY
+  assert_equal 0, R3::ANY
+end
+
 assert 'R3::GET' do
   assert_include R3.constants, :GET
 end

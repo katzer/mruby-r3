@@ -1,20 +1,32 @@
-/*
-** mrb_r3.c - R3 class
-**
-** Copyright (c) AMEMIYA Satoshi 2015
-**
-** See Copyright Notice in LICENSE
-*/
-
-#define HAVE_STRNDUP
-#define HAVE_STRDUP
+/* MIT License
+ *
+ * Copyright (c) Sebastian Katzer 2017
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 #include "mruby.h"
-#include "mruby/array.h"
+#include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/data.h"
-#include "mruby/hash.h"
 #include "mruby/error.h"
+#include "memory.h"
 #include "r3.h"
 
 static mrb_value
@@ -36,17 +48,15 @@ mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_r3_f_add(mrb_state *mrb, mrb_value self)
 {
-    mrb_int path_len, method, len;
+    mrb_int path_len, method;
     char *path;
     R3Node *tree = DATA_PTR(self);
 
-    len = mrb_get_args(mrb, "s|i", &path, &path_len, &method);
-
-    if (len == 2) {
-        r3_tree_insert_routel(tree, method, path, path_len, NULL);
-    } else {
-        r3_tree_insert_pathl(tree, path, path_len, NULL);
+    if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
+        method = 0;
     }
+
+    r3_tree_insert_routel(tree, method, path, path_len, NULL);
 
     return mrb_nil_value();
 }
@@ -71,29 +81,23 @@ mrb_r3_f_compile(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
 {
-    mrb_int path_len, method, len;
+    mrb_int path_len, method;
     char *path;
     R3Node *tree = DATA_PTR(self);
     match_entry *entry;
-    R3Route *matched_route;
+    R3Route *route;
 
-    len = mrb_get_args(mrb, "s|i", &path, &path_len, &method);
-
-    entry         = match_entry_createl(path, path_len);
-    matched_route = r3_tree_match_route(tree, entry);
-    match_entry_free(entry);
-
-    if (matched_route) {
-        if (matched_route->request_method != method)
-            return mrb_false_value();
-
-        return mrb_true_value();
+    if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
+        method = 0;
     }
 
-    if (r3_tree_matchl(tree, path, path_len, NULL))
-        return mrb_true_value();
+    entry = match_entry_createl(path, path_len);
+    entry->request_method = method;
 
-    return mrb_false_value();
+    route = r3_tree_match_route(tree, entry);
+    match_entry_free(entry);
+
+    return (route) ? mrb_true_value() : mrb_false_value();
 }
 
 static mrb_value
@@ -108,36 +112,42 @@ mrb_r3_f_mismatches(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_r3_f_match(mrb_state *mrb, mrb_value self)
 {
-//     int i, len;
-//     mrb_value r3,
-//               path,
-//               data_key,
-//               match,
-//               params_key,
-//               params_value;
-//     match_entry *entry;
-//     R3Route *matched_route;
-//     R3Node *tree = DATA_PTR(self);
-//     mrb_get_args(mrb, "iS", &r3, &path);
+    mrb_int path_len, method, i;
+    char *path;
+    R3Node *tree, *match;
+    R3Route *route;
+    match_entry *entry;
+    r3_iovec_t *slugs, *tokens;
+    mrb_value params, val, key;
 
-//     match = mrb_hash_new(mrb);
-//     params_value = mrb_ary_new(mrb);
-//     data_key = mrb_symbol_value(mrb_intern_cstr(mrb, "data"));
-//     params_key = mrb_symbol_value(mrb_intern_cstr(mrb, "params"));
-//     entry = match_entry_create(mrb_str_to_cstr(mrb, path));
-//     entry->request_method = mrb_fixnum(r3);
+    if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
+        method = 0;
+    }
 
-//     matched_route = r3_tree_match_route(tree, entry);
-//     if (matched_route != NULL) {
-//         mrb_hash_set(mrb, match, data_key, mrb_obj_value(matched_route->data));
-//     }
-//     for (i = 0, len = entry->vars.tokens.size; i < len; i++) {
-//         mrb_ary_push(mrb, params_value, mrb_str_new_cstr(mrb, entry->vars.tokens.entries.base[i]));
-//     }
-//     // match_entry_free(entry);
-//     // mrb_hash_set(mrb, match, params_key, params_value);
+    entry                 = match_entry_createl(path, path_len);
+    entry->request_method = method;
+    tree                  = DATA_PTR(self);
+    params                = mrb_hash_new(mrb);
+    route                 = r3_tree_match_route(tree, entry);
 
-//     return match;
+    if (!route) {
+        match_entry_free(entry);
+        return params;
+    }
+
+    slugs  = entry->vars.slugs.entries;
+    tokens = entry->vars.tokens.entries;
+
+    for (i = 0; i < entry->vars.slugs.size; i++) {
+        key = mrb_str_new_static(mrb, slugs[i].base, slugs[i].len);
+        val = mrb_str_new(mrb, tokens[i].base, tokens[i].len);
+
+        mrb_hash_set(mrb, params, mrb_str_intern(mrb, key), val);
+    }
+
+    match_entry_free(entry);
+
+    return params;
 }
 
 void
@@ -146,6 +156,7 @@ mrb_mruby_r3_gem_init(mrb_state *mrb)
     struct RClass *r3, *tr;
 
     r3 = mrb_define_module(mrb, "R3");
+    mrb_define_const(mrb, r3, "ANY",     mrb_fixnum_value(0));
     mrb_define_const(mrb, r3, "GET",     mrb_fixnum_value(METHOD_GET));
     mrb_define_const(mrb, r3, "POST",    mrb_fixnum_value(METHOD_POST));
     mrb_define_const(mrb, r3, "PUT",     mrb_fixnum_value(METHOD_PUT));
