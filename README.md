@@ -3,6 +3,7 @@ mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=maste
 
 mruby binding for [lib3r][r3], the high-performance path dispatching library.
 
+The code compiles nativ on Linux, OSX and Windows. Cross-compilation is also supported if you [mruby-cli][mruby-cli] and optional a more up-to-date [docker image][appplant/mruby-cli-glibc-docker].
 
 ## Installation
 
@@ -13,7 +14,7 @@ MRuby::Build.new do |conf|
 
     # ... (snip) ...
 
-    conf.gem 'mruby-r3', github: 'katzer/mruby-r3'
+    conf.gem 'mruby-r3'
 end
 ```
 
@@ -24,7 +25,7 @@ MRuby::Gem::Specification.new('your-mrbgem') do |spec|
 
     # ... (snip) ...
 
-    spec.add_dependency 'mruby-r3', github: 'katzer/mruby-r3'
+    spec.add_dependency 'mruby-r3'
 end
 ```
 
@@ -160,5 +161,7 @@ Made with :yum: from Leipzig
 © 2017 [appPlant GmbH][appplant]
 
 [r3]: https://github.com/c9s/r3
+[mruby-cli]: https://github.com/hone/mruby-cli
+[appplant/mruby-cli-glibc-docker]: https://github.com/appPlant/mruby-cli-glibc-docker
 [license]: http://opensource.org/licenses/MIT
 [appplant]: www.appplant.de
