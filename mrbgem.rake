@@ -20,6 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+def target_win32?
+  return true if ENV['OS'] == 'Windows_NT'
+  build.is_a?(MRuby::CrossBuild) && build.host_target.to_s =~ /mingw/
+end
+
 MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.license = 'MIT'
   spec.authors = 'Sebastian Katzer'
@@ -28,17 +33,20 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.add_dependency 'mruby-regexp-pcre'
   spec.add_test_dependency 'mruby-print'
 
-  r3_dir = "#{spec.dir}/r3"
-  r3_src = "#{r3_dir}/src"
+  r3_dir  = "#{spec.dir}/r3"
+  r3_src  = "#{r3_dir}/src"
+  ext_src = "#{r3_dir}/3rdparty"
 
   pcre_h = Pathname.new("#{build.build_dir}/../mrbgems/mruby-regexp-pcre/pcre")
-                   .cleanpath
-                   .to_s
+                   .cleanpath.to_s
 
   spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP -D_GNU_SOURCE]
-  spec.cc.include_paths += %W[#{r3_dir}/include #{r3_dir}/3rdparty #{pcre_h}]
+  spec.cc.include_paths += %W[#{r3_dir}/include #{ext_src} #{pcre_h}]
+  spec.linker.libraries << ['pthread']
 
-  spec.objs += %W[
+  [spec.cc, spec.linker].each { |cc| cc.flags << '-DPCRE_STATIC' }
+
+  files = %W[
     #{r3_src}/edge.c
     #{r3_src}/match_entry.c
     #{r3_src}/memory.c
@@ -46,6 +54,14 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
     #{r3_src}/slug.c
     #{r3_src}/str.c
     #{r3_src}/token.c
-    #{r3_dir}/3rdparty/zmalloc.c
-  ].map! { |f| f.relative_path_from(dir).pathmap("#{build_dir}/%X#{spec.exts.object}") }
+    #{ext_src}/zmalloc.c
+  ]
+
+  files += %W[#{ext_src}/mman.c #{ext_src}/getpagesize.c] if target_win32?
+
+  files.map! do |f|
+    f.relative_path_from(dir).pathmap("#{build_dir}/%X#{spec.exts.object}")
+  end
+
+  spec.objs += files
 end

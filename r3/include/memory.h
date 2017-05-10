@@ -22,15 +22,17 @@
 #ifndef r3__memory_h
 #define r3__memory_h
 
-#ifdef __sun__
-#include <alloca.h>
+#if defined(__APPLE__) || defined(__linux__)
+# include <alloca.h>
+#else
+# include <malloc.h>
 #endif
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <alloca.h>
 
 #ifdef __cplusplus
 extern "C" {

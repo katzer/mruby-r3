@@ -30,9 +30,9 @@ environment:
     VCVARSALL: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
     CC: gcc
   matrix:
-  - MRUBY_VERSION: head
-    COMPILER: C:\MinGW # MinGW 32-bit 5.3.0
   - MRUBY_VERSION: 1.2.0
+    COMPILER: C:\MinGW # MinGW 32-bit 5.3.0
+  - MRUBY_VERSION: head
     COMPILER: C:\MinGW # MinGW 32-bit 5.3.0
   - MRUBY_VERSION: head
     COMPILER: C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0 # MinGW-w64 5.3.0
@@ -45,7 +45,6 @@ environment:
 matrix:
   allow_failures:
   - CC: visualcpp
-  - MRUBY_VERSION: 1.2.0
   exclude:
   - CC: visualcpp
 
@@ -60,4 +59,4 @@ build_script:
 - rake compile
 
 test_script:
-# - rake test TODO hangs!!! (threads r3/memonry.c ?)
+- rake test

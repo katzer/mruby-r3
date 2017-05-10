@@ -27,7 +27,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
+
+#if defined(__APPLE__) || defined(__linux__)
+# include <sys/mman.h>
+#else
+# include "mman.h"
+# include "getpagesize.c"
+#endif
+
 #include <unistd.h>
 #include "memory.h"
 
@@ -54,7 +61,11 @@ struct st_r3_mem_pool_shared_ref_t {
 
 void *(*r3_mem__set_secure)(void *, int, unsigned int) = memset;
 
-static __thread r3_mem_recycle_t mempool_allocator = {16};
+#ifdef __thread
+    static __thread r3_mem_recycle_t mempool_allocator = {16};
+#else
+    static r3_mem_recycle_t mempool_allocator = {16};
+#endif
 
 void r3_fatal(const char *msg)
 {
@@ -318,7 +329,7 @@ void r3_vector__expand(r3_mem_pool_t *pool, r3_vector_t *vector, unsigned int el
 {
     void *new_entries;
     assert(vector->capacity < new_capacity);
-    if (!vector->capacity) 
+    if (!vector->capacity)
         vector->capacity = 4;
     while (vector->capacity < new_capacity)
         vector->capacity *= 2;
