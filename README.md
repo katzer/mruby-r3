@@ -74,62 +74,30 @@ tree.add('/blog/post/{id:\\d+}', R3::DELETE)
 Once the tree has been compiled he's ready for dispatching.
 
 ```ruby
-# 1.
 tree << '/'
+tree.add '/users', R3::ANY
+tree.add '/posts', R3::GET
+tree.add '/users/{user_id}/feeds/{feed_id}', R3::GET
 tree.compile
 
 tree.match? '/'
 # => true
-tree.match? '/', R3::HEAD
-# => true
-tree.match? '/users'
+tree.match '/'
+# => {}
+
+tree.match? '/other'
 # => false
+tree.match '/other'
+# => nil
 
-# 2.
-tree.add '/users', R3::ANY
-tree.compile
-
-tree.match? '/users', R3::GET
-# => true
 tree.match? '/users', R3::POST
-# => true
-
-# 3.
-tree.add '/posts', R3::GET
-tree.compile
-
-tree.match? '/posts', R3::GET
 # => true
 tree.match? '/posts', R3::POST
 # => false
-tree.mismatch? '/posts', R3::POST
-# => true
-```
 
-Finally the most important part.
-
-```ruby
-# 1.
-tree << '/'
-tree.compile
-
-tree.match '/'
-# => {}
-tree.match '/users'
-# => nil
-
-# 2.
-tree.add '/users/{id}'
-tree.add '/users/{user_id}/feeds/{feed_id}', R3::GET
-tree.compile
-
-tree.match '/users/1'
-# => { id: '1' }
 tree.match '/users/1/feeds/2'
 # => { user_id: '1', feed_id: '2' }
 tree.match '/users/1/feeds/2', R3::POST
-# => nil
-tree.match '/users/1/feeds/2/post/3'
 # => nil
 ```
 
