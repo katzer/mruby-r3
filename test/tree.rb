@@ -63,6 +63,14 @@ assert 'R3::Tree#add(str, int)' do
   assert_nothing_raised { tree.add('/route', R3::GET) }
 end
 
+assert 'R3::Tree#add(str, int, proc)' do
+  assert_nothing_raised { tree.add('/route', R3::GET, -> {}) }
+end
+
+assert 'R3::Tree#add(str, int, hash)' do
+  assert_nothing_raised { tree.add('/route', R3::GET, {}) }
+end
+
 assert 'R3::Tree#add(int)' do
   assert_raise(TypeError) { tree.add(R3::GET) }
 end
@@ -71,8 +79,8 @@ assert 'R3::Tree#add(int, str)' do
   assert_raise(TypeError) { tree.add(R3::GET, '/route') }
 end
 
-assert 'R3::Tree#add(str, int, int)' do
-  assert_raise(ArgumentError) { tree.add('/route', R3::GET, R3::GET) }
+assert 'R3::Tree#add(str, int, int, int)' do
+  assert_raise(ArgumentError) { tree.add('/route', R3::GET, 1, 1) }
 end
 
 assert 'R3::Tree#compile()' do
@@ -198,6 +206,16 @@ assert 'R3::Tree#match(str, int)' do
   assert_include params, :age
   assert_equal 'bernd', params[:name]
   assert_equal '99', params[:age]
+end
+
+assert 'R3::Tree#match(str)', 'return params and data' do
+  tree = setup_tree do |t|
+    t.add('/user/{name}', R3::ANY, -> { 'callback handler' })
+  end
+
+  params, handler = tree.match('/user/bernd')
+  assert_equal({ name: 'bernd' }, params)
+  assert_kind_of Proc, handler
 end
 
 assert 'R3::Tree#match()' do

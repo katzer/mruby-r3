@@ -22,6 +22,7 @@
  */
 
 #include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/data.h"
@@ -51,12 +52,17 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     mrb_int path_len, method;
     char *path;
     R3Node *tree = DATA_PTR(self);
+    mrb_value data;
+    mrb_bool data_given;
 
-    if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
+    if (mrb_get_args(mrb, "s|io?", &path, &path_len, &method, &data, &data_given) == 1) {
         method = 0;
     }
 
-    r3_tree_insert_routel(tree, method, path, path_len, NULL);
+    if (data_given)
+        r3_tree_insert_routel(tree, method, path, path_len, mrb_ptr(data));
+    else
+        r3_tree_insert_routel(tree, method, path, path_len, NULL);
 
     return mrb_nil_value();
 }
@@ -97,7 +103,12 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
     route = r3_tree_match_route(tree, entry);
     match_entry_free(entry);
 
-    return (route) ? mrb_true_value() : mrb_false_value();
+    if (route) {
+        free(route);
+        return mrb_true_value();
+    }
+
+    return mrb_false_value();
 }
 
 static mrb_value
@@ -112,13 +123,13 @@ mrb_r3_f_mismatches(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_r3_f_match(mrb_state *mrb, mrb_value self)
 {
-    mrb_int path_len, method, i;
+    mrb_int path_len, method, i, data_given = 0;
     char *path;
-    R3Node *tree, *match;
+    R3Node *tree;
     R3Route *route;
     match_entry *entry;
     r3_iovec_t *slugs, *tokens;
-    mrb_value params, val, key;
+    mrb_value params, data, val, key;
 
     if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
         method = 0;
@@ -135,6 +146,11 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
         return params;
     }
 
+    if (route->data) {
+        data_given = 1;
+        data = mrb_obj_value(route->data);
+    }
+
     slugs  = entry->vars.slugs.entries;
     tokens = entry->vars.tokens.entries;
 
@@ -145,9 +161,13 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
         mrb_hash_set(mrb, params, mrb_str_intern(mrb, key), val);
     }
 
+    free(route);
     match_entry_free(entry);
 
-    return params;
+    if (data_given == 0)
+        return params;
+
+    return mrb_assoc_new(mrb, params, data);
 }
 
 void
@@ -167,8 +187,8 @@ mrb_mruby_r3_gem_init(mrb_state *mrb)
 
     tr = mrb_define_class_under(mrb, r3, "Tree", mrb->object_class);
     mrb_define_method(mrb, tr, "initialize", mrb_r3_f_init, MRB_ARGS_OPT(1));
-    mrb_define_method(mrb, tr, "add",        mrb_r3_f_add, MRB_ARGS_ARG(1,1));
-    mrb_define_method(mrb, tr, "<<",         mrb_r3_f_add, MRB_ARGS_ARG(1,1));
+    mrb_define_method(mrb, tr, "add",        mrb_r3_f_add, MRB_ARGS_ARG(1,2));
+    mrb_define_method(mrb, tr, "<<",         mrb_r3_f_add, MRB_ARGS_ARG(1,2));
     mrb_define_method(mrb, tr, "compile",    mrb_r3_f_compile, MRB_ARGS_NONE());
     mrb_define_method(mrb, tr, "match?",     mrb_r3_f_matches, MRB_ARGS_ARG(1,1));
     mrb_define_method(mrb, tr, "mismatch?",  mrb_r3_f_mismatches, MRB_ARGS_ARG(1,1));

@@ -106,7 +106,7 @@ tree.mismatch? '/posts', R3::POST
 # => true
 ```
 
-And finally the most important part.
+Finally the most important part.
 
 ```ruby
 # 1.
@@ -118,6 +118,7 @@ tree.match '/'
 tree.match '/users'
 # => nil
 
+# 2.
 tree.add '/users/{id}'
 tree.add '/users/{user_id}/feeds/{feed_id}', R3::GET
 tree.compile
@@ -130,6 +131,17 @@ tree.match '/users/1/feeds/2', R3::POST
 # => nil
 tree.match '/users/1/feeds/2/post/3'
 # => nil
+```
+
+Before you're writing your own URL map, you can make use of the built-in feature to add any kind of data with the route.
+
+```ruby
+tree.add('/user/{name}', R3::ANY, -> { 'callback handler' })
+tree.compile
+
+params, handler = tree.match('/user/bernd')
+handler.call
+# => 'callback handler'
 ```
 
 
@@ -151,7 +163,6 @@ Run the tests:
 ## TODO
 
 1. Add a route for multiple HTTP methods.
-2. Add data to the route.
 
 
 ## Authors
