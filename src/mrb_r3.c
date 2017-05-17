@@ -138,12 +138,11 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     entry                 = match_entry_createl(path, path_len);
     entry->request_method = method;
     tree                  = DATA_PTR(self);
-    params                = mrb_hash_new(mrb);
     route                 = r3_tree_match_route(tree, entry);
 
     if (!route) {
         match_entry_free(entry);
-        return params;
+        return mrb_nil_value();
     }
 
     if (route->data) {
@@ -151,6 +150,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
         data = mrb_obj_value(route->data);
     }
 
+    params = mrb_hash_new(mrb);
     slugs  = entry->vars.slugs.entries;
     tokens = entry->vars.tokens.entries;
 

@@ -157,8 +157,7 @@ assert 'R3::Tree#match(str)' do
   end
 
   params = tree.match('/other')
-  assert_kind_of Hash, params
-  assert_true params.empty?
+  assert_nil params
 
   params = tree.match('/user')
   assert_kind_of Hash, params
@@ -185,8 +184,7 @@ assert 'R3::Tree#match(str, int)' do
   end
 
   params = tree.match('/other', R3::GET)
-  assert_kind_of Hash, params
-  assert_true params.empty?
+  assert_nil params
 
   params = tree.match('/user', R3::GET)
   assert_kind_of Hash, params
@@ -198,7 +196,7 @@ assert 'R3::Tree#match(str, int)' do
   assert_equal 'bernd', params[:name]
 
   params = tree.match('/user/bernd', R3::DELETE)
-  assert_true params.empty?
+  assert_nil params
 
   params = tree.match('/user/bernd/99', R3::GET)
   assert_equal 2, params.size
