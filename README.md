@@ -3,7 +3,13 @@ mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=maste
 
 mruby binding for [lib3r][r3], the high-performance path dispatching library.
 
-The code compiles nativ on Linux, OSX and Windows. Cross-compilation is also supported if you [mruby-cli][mruby-cli] and optional a more up-to-date [docker image][appplant/mruby-cli-glibc-docker].
+```ruby
+tree << '/users/{user_id}/feeds/{feed_id}'
+
+tree.match '/users/1/feeds/2'
+# => { user_id: '1', feed_id: '2' }
+```
+
 
 ## Installation
 
@@ -144,7 +150,8 @@ Run the tests:
 
 ## TODO
 
-It's not yet possible to add a matching route for multiple HTTP methods. Either any or only one are possible. 
+1. Add a route for multiple HTTP methods.
+2. Add data to the route.
 
 
 ## Authors
@@ -161,7 +168,5 @@ Made with :yum: from Leipzig
 © 2017 [appPlant GmbH][appplant]
 
 [r3]: https://github.com/c9s/r3
-[mruby-cli]: https://github.com/hone/mruby-cli
-[appplant/mruby-cli-glibc-docker]: https://github.com/appPlant/mruby-cli-glibc-docker
 [license]: http://opensource.org/licenses/MIT
 [appplant]: www.appplant.de
