@@ -34,6 +34,9 @@ matrix:
   allow_failures:
   - env: MRUBY_VERSION=1.2.0
 
+before_script:
+- export TOOLCHAIN=$CC
+
 script:
 - rake compile
 - rake test
