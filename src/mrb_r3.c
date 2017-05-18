@@ -118,7 +118,6 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
     match_entry_free(entry);
 
     if (route) {
-        free(route);
         return mrb_true_value();
     }
 
@@ -177,7 +176,6 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
         mrb_hash_set(mrb, params, mrb_str_intern(mrb, key), val);
     }
 
-    free(route);
     match_entry_free(entry);
 
     if (data_given == 0)
