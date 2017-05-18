@@ -20,46 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-assert 'R3' do
-  assert_kind_of Module, R3
-end
-
-assert 'R3::ANY' do
-  assert_include R3.constants, :ANY
-  assert_equal 0, R3::ANY
-end
-
-assert 'R3::GET' do
-  assert_include R3.constants, :GET
-end
-
-assert 'R3::POST' do
-  assert_include R3.constants, :POST
-end
-
-assert 'R3::PUT' do
-  assert_include R3.constants, :PUT
-end
-
-assert 'R3::DELETE' do
-  assert_include R3.constants, :DELETE
-end
-
-assert 'R3::PATCH' do
-  assert_include R3.constants, :PATCH
-end
-
-assert 'R3::HEAD' do
-  assert_include R3.constants, :HEAD
-end
-
-assert 'R3::OPTIONS' do
-  assert_include R3.constants, :OPTIONS
-end
-
-assert 'R3::method_code_for' do
-  assert_equal R3::OPTIONS, R3.method_code_for(:OPTIONS)
-  assert_equal R3::OPTIONS, R3.method_code_for('OPTIONS')
-  assert_nil R3.method_code_for(R3::OPTIONS)
-  assert_nil R3.method_code_for('Tree')
+module R3
+  # Method code for written HTTP method name.
+  #
+  # :call-sequence:
+  # => R3.method_code_for 'GET'
+  # => R3::GET
+  #
+  # @param [ String ] Uppercase name of the HTTP method.
+  #
+  # @return [ Integer ]
+  def self.method_code_for(method)
+    const = const_get(method) if const_defined? method
+    const.is_a?(Integer) ? const : nil
+  rescue
+    nil
+  end
 end
