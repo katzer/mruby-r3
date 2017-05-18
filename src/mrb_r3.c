@@ -30,6 +30,16 @@
 #include "memory.h"
 #include "r3.h"
 
+static void
+mrb_r3_chomp_path(char *path, mrb_int *len)
+{
+    if (*len == 1 || path[*len - 1] != '/')
+        return;
+
+    *len -= 1;
+    path[*len] = '\0';
+}
+
 static mrb_value
 mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 {
@@ -58,6 +68,8 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     if (mrb_get_args(mrb, "s|io?", &path, &path_len, &method, &data, &data_given) == 1) {
         method = 0;
     }
+
+    mrb_r3_chomp_path(path, &path_len);
 
     if (data_given)
         r3_tree_insert_routel(tree, method, path, path_len, mrb_ptr(data));
@@ -97,6 +109,8 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
         method = 0;
     }
 
+    mrb_r3_chomp_path(path, &path_len);
+
     entry = match_entry_createl(path, path_len);
     entry->request_method = method;
 
@@ -134,6 +148,8 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     if (mrb_get_args(mrb, "s|i", &path, &path_len, &method) == 1) {
         method = 0;
     }
+
+    mrb_r3_chomp_path(path, &path_len);
 
     entry                 = match_entry_createl(path, path_len);
     entry->request_method = method;

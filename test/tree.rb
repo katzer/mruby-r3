@@ -98,6 +98,7 @@ end
 
 assert 'R3::Tree#match?(str)' do
   assert_true  setup_tree { |t| t << '/route' }.match? '/route'
+  assert_true  setup_tree { |t| t << '/route' }.match? '/route/'
   assert_true  setup_tree { |t| t << '/route' }.match? '/route', R3::GET
   assert_false setup_tree { |t| t << '/route' }.match? '/other'
   assert_false setup_tree { |t| t << '/route' }.match? '/other', R3::DELETE

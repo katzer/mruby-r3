@@ -1,7 +1,7 @@
 mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=master)](https://travis-ci.org/katzer/mruby-r3) [![Build status](https://ci.appveyor.com/api/projects/status/dhiknegayv8k18mw/branch/master?svg=true)](https://ci.appveyor.com/project/katzer/mruby-r3/branch/master)
 --------
 
-mruby binding for [lib3r][r3], the high-performance path dispatching library.
+mruby binding for [lib3r][r3], a high-performance path dispatching library.
 
 ```ruby
 tree << '/users/{user_id}/feeds/{feed_id}'
