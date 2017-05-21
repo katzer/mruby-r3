@@ -30,8 +30,8 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.authors = 'Sebastian Katzer'
   spec.summary = 'Router dispatcher'
 
-  spec.add_dependency 'mruby-regexp-pcre'
-  spec.add_test_dependency 'mruby-print'
+  spec.add_dependency 'mruby-regexp-pcre', mgem: 'mruby-regexp-pcre'
+  spec.add_test_dependency 'mruby-print',  core: 'mruby-print'
 
   r3_dir  = "#{spec.dir}/r3"
   r3_src  = "#{r3_dir}/src"
