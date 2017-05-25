@@ -19,8 +19,6 @@ BUGS
 
 #ifndef VMS
 
-#include "config.h"
-
 #include <sys/types.h>
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
