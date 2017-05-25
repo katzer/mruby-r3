@@ -1,5 +1,4 @@
-mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=master)](https://travis-ci.org/katzer/mruby-r3) [![Build status](https://ci.appveyor.com/api/projects/status/dhiknegayv8k18mw/branch/master?svg=true)](https://ci.appveyor.com/project/katzer/mruby-r3/branch/master)
---------
+# mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=master)](https://travis-ci.org/katzer/mruby-r3) [![Build status](https://ci.appveyor.com/api/projects/status/dhiknegayv8k18mw/branch/master?svg=true)](https://ci.appveyor.com/project/katzer/mruby-r3/branch/master)
 
 mruby binding for [lib3r][r3], a high-performance path dispatching library.
 
@@ -17,10 +16,9 @@ Add the line below to your `build_config.rb`:
 
 ```ruby
 MRuby::Build.new do |conf|
-
-    # ... (snip) ...
-
-    conf.gem 'mruby-r3'
+  # ... (snip) ...
+  conf.gem 'mruby-regexp-pcre' # Optional
+  conf.gem 'mruby-r3'
 end
 ```
 
@@ -28,10 +26,9 @@ Or add this line to your aplication's `mrbgem.rake`:
 
 ```ruby
 MRuby::Gem::Specification.new('your-mrbgem') do |spec|
-
-    # ... (snip) ...
-
-    spec.add_dependency 'mruby-r3'
+  # ... (snap) ...
+  spec.add_dependency 'mruby-regexp-pcre' # Optional
+  spec.add_dependency 'mruby-r3'
 end
 ```
 
@@ -51,12 +48,12 @@ The default initial size is up to 5 routes.
 tree = R3::Tree.new(100)
 ```
 
-The pattern syntax for routes is the following:
+The pattern syntax for routes is the following. Enhanced support for regular expression requires __mruby-regexp-pcre__ to be installed!
 
     /blog/post/{id}      use [^/]+ regular expression by default.
     /blog/post/{id:\d+}  use `\d+` regular expression instead of default.
 
-They can be added to the tree at any time, however dont forget to call __compile__ before using them.
+Routes can be added to the tree at any time, however dont forget to call __compile__ before using them.
 
 ```ruby
 tree << '/'

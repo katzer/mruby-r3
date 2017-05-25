@@ -39,9 +39,13 @@ void zlibc_free(void *ptr) {
     free(ptr);
 }
 
+// PCRE
+#ifdef HAVE_PCRE_H
+# include "config.h"
+#endif
+
 #include <string.h>
 #include <pthread.h>
-#include "config.h"
 #include "zmalloc.h"
 
 #ifdef HAVE_MALLOC_SIZE

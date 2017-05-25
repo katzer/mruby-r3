@@ -30,8 +30,8 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.authors = 'Sebastian Katzer'
   spec.summary = 'Router dispatcher'
 
-  spec.add_dependency 'mruby-regexp-pcre', mgem: 'mruby-regexp-pcre'
-  spec.add_test_dependency 'mruby-print',  core: 'mruby-print'
+  spec.add_test_dependency 'mruby-regexp-pcre', mgem: 'mruby-regexp-pcre'
+  spec.add_test_dependency 'mruby-print',       core: 'mruby-print'
 
   r3_dir  = "#{spec.dir}/r3"
   r3_src  = "#{r3_dir}/src"
@@ -41,10 +41,14 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
                    .cleanpath.to_s
 
   spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP -D_GNU_SOURCE]
-  spec.cc.include_paths += %W[#{r3_dir}/include #{ext_src} #{pcre_h}]
+  spec.cc.include_paths += %W[#{r3_dir}/include #{ext_src}]
   spec.linker.libraries << ['pthread']
 
-  [spec.cc, spec.linker].each { |cc| cc.flags << '-DPCRE_STATIC' }
+  if Dir.exist? pcre_h
+    spec.cc.flags         << '-DHAVE_PCRE_H'
+    spec.cc.include_paths << pcre_h
+    [spec.cc, spec.linker].each { |cc| cc.flags << '-DPCRE_STATIC' }
+  end
 
   files = %W[
     #{r3_src}/edge.c

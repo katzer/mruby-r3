@@ -4,13 +4,16 @@
  *
  * Distributed under terms of the MIT license.
  */
-#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pcre.h>
 #include <assert.h>
 #include <stdbool.h>
+
+// PCRE
+#ifdef HAVE_PCRE_H
+# include "config.h"
+#endif
 
 #include "r3.h"
 #include "zmalloc.h"

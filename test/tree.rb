@@ -31,6 +31,10 @@ def setup_tree
   tree
 end
 
+def compiled_with_pcre?
+  Object.const_defined? :Regexp
+end
+
 assert 'R3::Tree' do
   assert_kind_of Class, R3::Tree
 end
@@ -191,10 +195,12 @@ assert 'R3::Tree#match(str, int)' do
   assert_kind_of Hash, params
   assert_true params.empty?
 
-  params = tree.match('/user/bernd', R3::GET)
-  assert_equal 1, params.size
-  assert_include params, :name
-  assert_equal 'bernd', params[:name]
+  if compiled_with_pcre?
+    params = tree.match('/user/bernd', R3::GET)
+    assert_equal 1, params.size
+    assert_include params, :name
+    assert_equal 'bernd', params[:name]
+  end
 
   params = tree.match('/user/bernd', R3::DELETE)
   assert_nil params

@@ -4,7 +4,6 @@
  *
  * Distributed under terms of the MIT license.
  */
-#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +13,11 @@
 #include "str.h"
 #include "slug.h"
 #include "zmalloc.h"
+
+// PCRE
+#ifdef HAVE_PCRE_H
+# include "config.h"
+#endif
 
 static char * strnchr(const char* str, unsigned int len, int ch) {
     for (unsigned int i = 0; i < len; i++) {

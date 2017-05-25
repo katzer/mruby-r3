@@ -10,18 +10,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pcre.h>
+
+// PCRE
+#ifdef HAVE_PCRE_H
+# include <pcre.h>
+#endif
 
 #ifdef HAVE_STDBOOL_H
-
-#include <stdbool.h>
-
+# include <stdbool.h>
 #else
 
 #if !defined(bool) && !defined(__cplusplus)
 typedef unsigned char bool;
 #endif
-#ifndef false 
+#ifndef false
 #    define false 0
 #endif
 #ifndef true
@@ -50,8 +52,11 @@ struct _node  {
     R3_VECTOR(R3Edge) edges;
     R3_VECTOR(R3Route) routes;
     char * combined_pattern;
+
+#ifdef HAVE_PCRE_H
     pcre * pcre_pattern;
     pcre_extra * pcre_extra;
+#endif
 
     // edges are mostly less than 255
     unsigned int compare_type; // compare_type: pcre, opcode, string

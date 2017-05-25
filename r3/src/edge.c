@@ -4,7 +4,6 @@
  *
  * Distributed under terms of the MIT license.
  */
-#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +13,11 @@
 // #include <jemalloc/jemalloc.h>
 
 // PCRE
-#include <pcre.h>
+#ifdef HAVE_PCRE_H
+# include "config.h"
+# include <pcre.h>
+#endif
+
 #include "r3.h"
 #include "r3_slug.h"
 #include "slug.h"
@@ -73,7 +76,7 @@ R3Node * r3_edge_branch(R3Edge *e, int dl) {
     new_edge = r3_node_append_edge(new_child);
     r3_edge_initl(new_edge, s1, s1_len, e->child);
     e->child = new_child;
-    
+
     // truncate the original edge pattern
     e->pattern.len = dl;
     return new_child;

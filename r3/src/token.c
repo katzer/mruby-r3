@@ -4,7 +4,6 @@
  *
  * Distributed under terms of the MIT license.
  */
-#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,6 +13,11 @@
 #include "str_array.h"
 #include "zmalloc.h"
 #include "memory.h"
+
+// PCRE
+#ifdef HAVE_PCRE_H
+# include "config.h"
+#endif
 
 void str_array_free(str_array *l) {
     assert(l);
