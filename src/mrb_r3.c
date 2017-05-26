@@ -69,6 +69,7 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
         method = 0;
     }
 
+    path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
     if (data_given)
@@ -109,6 +110,7 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
         method = 0;
     }
 
+    path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
     entry = match_entry_createl(path, path_len);
@@ -148,6 +150,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
         method = 0;
     }
 
+    path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
     entry                 = match_entry_createl(path, path_len);

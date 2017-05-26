@@ -223,6 +223,22 @@ assert 'R3::Tree#match(str)', 'return params and data' do
   assert_kind_of Proc, handler
 end
 
+assert 'R3::Tree#match', 'chomp does not modify string' do
+  route = '/user/'
+  copy  = route.dup
+
+  tree = setup_tree { |t| t << route }
+
+  tree.match? route
+  assert_equal copy, route
+
+  tree.match? route
+  assert_equal copy, route
+
+  tree.match route
+  assert_equal copy, route
+end
+
 assert 'R3::Tree#match()' do
   assert_raise(ArgumentError) { setup_tree.match }
 end
