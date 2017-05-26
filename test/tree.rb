@@ -94,6 +94,8 @@ assert 'R3::Tree#compile()' do
   tree << '/route1/{id}'
   tree << '/route2/{id}'
   assert_kind_of Integer, tree.compile
+
+  tree.free
 end
 
 assert 'R3::Tree#compile(int)' do
@@ -179,6 +181,8 @@ assert 'R3::Tree#match(str)' do
   assert_include params, :age
   assert_equal 'bernd', params[:name]
   assert_equal '99', params[:age]
+
+  tree.free
 end
 
 assert 'R3::Tree#match(str, int)' do
@@ -211,6 +215,8 @@ assert 'R3::Tree#match(str, int)' do
   assert_include params, :age
   assert_equal 'bernd', params[:name]
   assert_equal '99', params[:age]
+
+  tree.free
 end
 
 assert 'R3::Tree#match(str)', 'return params and data' do
@@ -221,6 +227,8 @@ assert 'R3::Tree#match(str)', 'return params and data' do
   params, handler = tree.match('/user/bernd')
   assert_equal({ name: 'bernd' }, params)
   assert_kind_of Proc, handler
+
+  tree.free
 end
 
 assert 'R3::Tree#match', 'chomp does not modify string' do
@@ -237,6 +245,8 @@ assert 'R3::Tree#match', 'chomp does not modify string' do
 
   tree.match route
   assert_equal copy, route
+
+  tree.free
 end
 
 assert 'R3::Tree#match()' do
@@ -249,4 +259,11 @@ end
 
 assert 'R3::Tree#match(str, int, int)' do
   assert_raise(ArgumentError) { setup_tree.match '/', 1, 1 }
+end
+
+assert 'R3::Tree#free' do
+  tree = setup_tree
+
+  assert_true  tree.free
+  assert_false tree.free
 end

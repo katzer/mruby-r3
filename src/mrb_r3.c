@@ -187,6 +187,21 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     return mrb_assoc_new(mrb, params, data);
 }
 
+static mrb_value
+mrb_r3_f_free(mrb_state *mrb, mrb_value self)
+{
+    R3Node *tree;
+    tree = DATA_PTR(self);
+
+    if (!tree)
+        return mrb_false_value();
+
+    r3_tree_free(tree);
+    DATA_PTR(self) = NULL;
+
+    return mrb_true_value();
+}
+
 void
 mrb_mruby_r3_gem_init(mrb_state *mrb)
 {
@@ -210,6 +225,7 @@ mrb_mruby_r3_gem_init(mrb_state *mrb)
     mrb_define_method(mrb, tr, "match?",     mrb_r3_f_matches, MRB_ARGS_ARG(1,1));
     mrb_define_method(mrb, tr, "mismatch?",  mrb_r3_f_mismatches, MRB_ARGS_ARG(1,1));
     mrb_define_method(mrb, tr, "match",      mrb_r3_f_match, MRB_ARGS_ARG(1,1));
+    mrb_define_method(mrb, tr, "free",       mrb_r3_f_free, MRB_ARGS_NONE());
 }
 
 void
