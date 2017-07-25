@@ -17,8 +17,8 @@ Add the line below to your `build_config.rb`:
 ```ruby
 MRuby::Build.new do |conf|
   # ... (snip) ...
-  conf.gem 'mruby-regexp-pcre' # Optional
-  conf.gem 'mruby-r3'
+  conf.gem mgem: 'mruby-regexp-pcre' # Optional
+  conf.gem mgem: 'mruby-r3'
 end
 ```
 
