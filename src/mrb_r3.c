@@ -26,6 +26,7 @@
 #include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/data.h"
+#include "mruby/variable.h"
 #include "mruby/error.h"
 #include "memory.h"
 #include "r3.h"
@@ -40,16 +41,32 @@ mrb_r3_chomp_path(char *path, mrb_int *len)
     path[*len] = '\0';
 }
 
+static void
+mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
+{
+    mrb_sym data_attr;
+    mrb_value data_ary;
+
+    data_attr = mrb_intern_lit(mrb, "data");
+    data_ary = mrb_iv_get(mrb, self, data_attr);
+
+    mrb_ary_push(mrb, data_ary, data);
+}
+
 static mrb_value
 mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 {
     mrb_int capa;
+    mrb_sym data_attr;
     DATA_PTR(self) = NULL;
 
     mrb_get_args(mrb, "|i", &capa);
 
     if (!capa || capa <= 0)
         capa = 5;
+
+    data_attr = mrb_intern_lit(mrb, "data");
+    mrb_iv_set(mrb, self, data_attr, mrb_ary_new_capa(mrb, capa));
 
     DATA_PTR(self) = r3_tree_create(capa);
 
@@ -72,10 +89,12 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
-    if (data_given)
+    if (data_given) {
+        mrb_r3_save_data(mrb, self, data);
         r3_tree_insert_routel(tree, method, path, path_len, mrb_ptr(data));
-    else
+    } else {
         r3_tree_insert_routel(tree, method, path, path_len, NULL);
+    }
 
     return mrb_nil_value();
 }
