@@ -210,11 +210,15 @@ static mrb_value
 mrb_r3_f_free(mrb_state *mrb, mrb_value self)
 {
     R3Node *tree;
+    mrb_sym data;
+
     tree = DATA_PTR(self);
+    data = mrb_intern_lit(mrb, "data");
 
     if (!tree)
         return mrb_false_value();
 
+    mrb_iv_remove(mrb, self, data);
     r3_tree_free(tree);
     DATA_PTR(self) = NULL;
 
