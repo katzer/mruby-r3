@@ -30,16 +30,15 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.authors = 'Sebastian Katzer'
   spec.summary = 'Router dispatcher'
 
-  r3_dir  = "#{spec.dir}/r3"
-  r3_src  = "#{r3_dir}/src"
-  ext_src = "#{r3_dir}/3rdparty"
+  r3_dir = "#{spec.dir}/r3"
+  rd_dir = "#{r3_dir}/3rdparty"
 
   pcre_h = Pathname.new("#{build.build_dir}/../mrbgems/mruby-regexp-pcre/pcre")
                    .cleanpath.to_s
 
   spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP -D_GNU_SOURCE]
-  spec.cc.include_paths += %W[#{r3_dir}/include #{ext_src}]
-  spec.linker.libraries << ['pthread']
+  spec.cc.include_paths += %W[#{r3_dir}/include #{rd_dir}]
+  spec.linker.libraries << 'pthread'
 
   if Dir.exist? pcre_h
     spec.cc.flags         << '-DHAVE_PCRE_H'
@@ -48,17 +47,17 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   end
 
   files = %W[
-    #{r3_src}/edge.c
-    #{r3_src}/match_entry.c
-    #{r3_src}/memory.c
-    #{r3_src}/node.c
-    #{r3_src}/slug.c
-    #{r3_src}/str.c
-    #{r3_src}/token.c
-    #{ext_src}/zmalloc.c
+    #{r3_dir}/src/edge.c
+    #{r3_dir}/src/match_entry.c
+    #{r3_dir}/src/memory.c
+    #{r3_dir}/src/node.c
+    #{r3_dir}/src/slug.c
+    #{r3_dir}/src/str.c
+    #{r3_dir}/src/token.c
+    #{rd_dir}/zmalloc.c
   ]
 
-  files += %W[#{ext_src}/mman.c #{ext_src}/getpagesize.c] if target_win32?
+  files += %W[#{rd_dir}/mman.c #{rd_dir}/getpagesize.c] if target_win32?
 
   files.map! do |f|
     f.relative_path_from(dir).pathmap("#{build_dir}/%X#{spec.exts.object}")
