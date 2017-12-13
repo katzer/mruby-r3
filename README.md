@@ -128,6 +128,7 @@ Run the tests:
 ## TODO
 
 1. Add a route for multiple HTTP methods.
+2. missing asprintf() for MingGW 32-bit compiler. 
 
 
 ## Authors
