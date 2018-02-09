@@ -40,11 +40,12 @@ assert 'R3::Tree' do
 end
 
 assert 'R3::Tree#initialize()' do
-  assert_nothing_raised(ArgumentError) { R3::Tree.new }
+  assert_nothing_raised { R3::Tree.new }
 end
 
 assert 'R3::Tree#initialize(int)' do
-  assert_nothing_raised(ArgumentError) { R3::Tree.new(1) }
+  assert_nothing_raised { R3::Tree.new(1) }
+  assert_raise(RangeError) { R3::Tree.new(-1) }
 end
 
 assert 'R3::Tree#initialize(string)' do
@@ -68,7 +69,7 @@ assert 'R3::Tree#add(str, int)' do
 end
 
 assert 'R3::Tree#add(str, int, proc)' do
-  assert_nothing_raised { tree.add('/route', R3::GET, -> {}) }
+  assert_nothing_raised { tree.add('/route', R3::GET, ->{}) }
 end
 
 assert 'R3::Tree#add(str, int, hash)' do

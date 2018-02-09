@@ -56,14 +56,17 @@ mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 static mrb_value
 mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 {
-    mrb_int capa;
+    mrb_int capa, len;
     mrb_sym data_attr;
     DATA_PTR(self) = NULL;
 
-    mrb_get_args(mrb, "|i", &capa);
+    len = mrb_get_args(mrb, "|i", &capa);
 
-    if (!capa || capa <= 0)
+    if (len == 0)
         capa = 5;
+
+    if (capa <= 0)
+        mrb_raise(mrb, E_RANGE_ERROR, "Capa cannot be lower then zero.");
 
     data_attr = mrb_intern_lit(mrb, "data");
     mrb_iv_set(mrb, self, data_attr, mrb_ary_new_capa(mrb, capa));
