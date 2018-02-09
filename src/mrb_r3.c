@@ -30,6 +30,7 @@
 #include "mruby/error.h"
 #include "memory.h"
 #include "r3.h"
+#include <stdio.h>
 
 static void
 mrb_r3_chomp_path(char *path, mrb_int *len)
@@ -44,20 +45,58 @@ mrb_r3_chomp_path(char *path, mrb_int *len)
 static void
 mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 {
-    mrb_sym data_attr;
-    mrb_value data_ary;
+    mrb_sym attr;
+    mrb_value ary;
 
-    data_attr = mrb_intern_lit(mrb, "data");
-    data_ary = mrb_iv_get(mrb, self, data_attr);
+    attr = mrb_intern_lit(mrb, "data");
+    ary  = mrb_iv_get(mrb, self, attr);
 
-    mrb_ary_push(mrb, data_ary, data);
+    mrb_ary_push(mrb, ary, data);
+}
+
+static void
+mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, char *route, int len)
+{
+    mrb_sym attr;
+    mrb_value ary, data;
+    char buf[len + 8];
+
+    attr = mrb_intern_lit(mrb, "@routes");
+    ary  = mrb_iv_get(mrb, self, attr);
+
+    switch (method) {
+        case METHOD_GET:
+            sprintf(buf, "GET %s", route);
+            break;
+        case METHOD_POST:
+            sprintf(buf, "POST %s", route);
+            break;
+        case METHOD_PUT:
+            sprintf(buf, "PUT %s", route);
+            break;
+        case METHOD_PATCH:
+            sprintf(buf, "PATCH %s", route);
+            break;
+        case METHOD_OPTIONS:
+            sprintf(buf, "OPTIONS %s", route);
+            break;
+        case METHOD_DELETE:
+            sprintf(buf, "DELETE %s", route);
+            break;
+        case METHOD_HEAD:
+            sprintf(buf, "HEAD %s", route);
+            break;
+    }
+
+    data = mrb_str_new_cstr(mrb, buf);
+    mrb_ary_push(mrb, ary, data);
 }
 
 static mrb_value
 mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 {
     mrb_int capa, len;
-    mrb_sym data_attr;
+    mrb_sym data, routes;
     DATA_PTR(self) = NULL;
 
     len = mrb_get_args(mrb, "|i", &capa);
@@ -68,8 +107,11 @@ mrb_r3_f_init(mrb_state *mrb, mrb_value self)
     if (capa <= 0)
         mrb_raise(mrb, E_RANGE_ERROR, "Capa cannot be lower then zero.");
 
-    data_attr = mrb_intern_lit(mrb, "data");
-    mrb_iv_set(mrb, self, data_attr, mrb_ary_new_capa(mrb, capa));
+    data = mrb_intern_lit(mrb, "data");
+    mrb_iv_set(mrb, self, data, mrb_ary_new_capa(mrb, capa));
+
+    routes = mrb_intern_lit(mrb, "@routes");
+    mrb_iv_set(mrb, self, routes, mrb_ary_new_capa(mrb, capa));
 
     DATA_PTR(self) = r3_tree_create(capa);
 
@@ -98,6 +140,8 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     } else {
         r3_tree_insert_routel(tree, method, path, path_len, NULL);
     }
+
+    mrb_r3_save_route(mrb, self, method, path, path_len);
 
     return mrb_nil_value();
 }
@@ -213,15 +257,17 @@ static mrb_value
 mrb_r3_f_free(mrb_state *mrb, mrb_value self)
 {
     R3Node *tree;
-    mrb_sym data;
+    mrb_value routes;
 
     tree = DATA_PTR(self);
-    data = mrb_intern_lit(mrb, "data");
 
     if (!tree)
         return mrb_false_value();
 
-    mrb_iv_remove(mrb, self, data);
+    routes = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@routes"));
+    mrb_ary_clear(mrb, routes);
+
+    mrb_iv_remove(mrb, self, mrb_intern_lit(mrb, "data"));
     r3_tree_free(tree);
     DATA_PTR(self) = NULL;
 

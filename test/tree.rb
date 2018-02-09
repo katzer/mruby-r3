@@ -268,3 +268,21 @@ assert 'R3::Tree#free' do
   assert_true  tree.free
   assert_false tree.free
 end
+
+assert 'R3::Tree#routes' do
+  tree = setup_tree
+
+  assert_kind_of Array, tree.routes
+  assert_true tree.routes.empty?
+
+  tree.add '/user/{name}', R3::GET
+  assert_equal 1, tree.routes.size
+  assert_equal 'GET /user/{name}', tree.routes[0]
+
+  tree.add '/user/{name}', R3::DELETE
+  assert_equal 2, tree.routes.size
+  assert_equal 'DELETE /user/{name}', tree.routes[1]
+
+  tree.free
+  assert_true tree.routes.empty?
+end

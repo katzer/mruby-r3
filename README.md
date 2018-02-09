@@ -77,6 +77,9 @@ tree.add '/posts', R3::GET
 tree.add '/users/{user_id}/feeds/{feed_id}', R3::GET
 tree.compile
 
+tree.routes
+# => ['GET /users/{user_id}/feeds/{feed_id}', ...]
+
 tree.match? '/'
 # => true
 tree.match '/'

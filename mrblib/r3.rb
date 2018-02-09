@@ -33,7 +33,11 @@ module R3
   def self.method_code_for(method)
     const = const_get(method) if const_defined? method
     const.is_a?(Integer) ? const : nil
-  rescue
+  rescue StandardError
     nil
+  end
+
+  class Tree
+    attr_reader :routes
   end
 end
