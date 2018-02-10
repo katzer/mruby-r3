@@ -40,11 +40,12 @@ assert 'R3::Tree' do
 end
 
 assert 'R3::Tree#initialize()' do
-  assert_nothing_raised(ArgumentError) { R3::Tree.new }
+  assert_nothing_raised { R3::Tree.new }
 end
 
 assert 'R3::Tree#initialize(int)' do
-  assert_nothing_raised(ArgumentError) { R3::Tree.new(1) }
+  assert_nothing_raised { R3::Tree.new(1) }
+  assert_raise(RangeError) { R3::Tree.new(-1) }
 end
 
 assert 'R3::Tree#initialize(string)' do
@@ -68,7 +69,7 @@ assert 'R3::Tree#add(str, int)' do
 end
 
 assert 'R3::Tree#add(str, int, proc)' do
-  assert_nothing_raised { tree.add('/route', R3::GET, -> {}) }
+  assert_nothing_raised { tree.add('/route', R3::GET, ->{}) }
 end
 
 assert 'R3::Tree#add(str, int, hash)' do
@@ -266,4 +267,22 @@ assert 'R3::Tree#free' do
 
   assert_true  tree.free
   assert_false tree.free
+end
+
+assert 'R3::Tree#routes' do
+  tree = setup_tree
+
+  assert_kind_of Array, tree.routes
+  assert_true tree.routes.empty?
+
+  tree.add '/user/{name}', R3::GET
+  assert_equal 1, tree.routes.size
+  assert_equal 'GET /user/{name}', tree.routes[0]
+
+  tree.add '/user/{name}', R3::DELETE
+  assert_equal 2, tree.routes.size
+  assert_equal 'DELETE /user/{name}', tree.routes[1]
+
+  tree.free
+  assert_true tree.routes.empty?
 end

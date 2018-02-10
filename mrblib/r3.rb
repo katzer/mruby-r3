@@ -24,16 +24,42 @@ module R3
   # Method code for written HTTP method name.
   #
   # :call-sequence:
-  # => R3.method_code_for 'GET'
+  # => R3.method_code 'GET'
   # => R3::GET
   #
   # @param [ String ] Uppercase name of the HTTP method.
   #
   # @return [ Integer ]
-  def self.method_code_for(method)
+  def self.method_code(method)
     const = const_get(method) if const_defined? method
     const.is_a?(Integer) ? const : nil
-  rescue
+  rescue StandardError
     nil
+  end
+
+  # Written HTTP method name for the method code.
+  #
+  # :call-sequence:
+  # => R3.method_name R3::GET
+  # => 'GET'
+  #
+  # @param [ Int ] code The method code.
+  #
+  # @return [ String ]
+  def self.method_name(code)
+    case code
+    when ANY     then 'ANY'
+    when GET     then 'GET'
+    when PUT     then 'PUT'
+    when POST    then 'POST'
+    when DELETE  then 'DELETE'
+    when HEAD    then 'HEAD'
+    when OPTIONS then 'OPTIONS'
+    when PATCH   then 'PATCH'
+    end
+  end
+
+  class Tree
+    attr_reader :routes
   end
 end

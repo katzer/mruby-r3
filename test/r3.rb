@@ -57,9 +57,15 @@ assert 'R3::OPTIONS' do
   assert_include R3.constants, :OPTIONS
 end
 
-assert 'R3::method_code_for' do
-  assert_equal R3::OPTIONS, R3.method_code_for(:OPTIONS)
-  assert_equal R3::OPTIONS, R3.method_code_for('OPTIONS')
-  assert_nil R3.method_code_for(R3::OPTIONS)
-  assert_nil R3.method_code_for('Tree')
+assert 'R3::method_code' do
+  assert_equal R3::OPTIONS, R3.method_code(:OPTIONS)
+  assert_equal R3::OPTIONS, R3.method_code('OPTIONS')
+  assert_nil R3.method_code(R3::OPTIONS)
+  assert_nil R3.method_code('Tree')
+end
+
+assert 'R3::method_name' do
+  assert_equal 'OPTIONS', R3.method_name(R3::OPTIONS)
+  assert_equal 'DELETE',  R3.method_name(R3::DELETE)
+  assert_nil R3.method_name(1.5)
 end
