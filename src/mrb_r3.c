@@ -106,10 +106,10 @@ mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, char *route, i
 static mrb_value
 mrb_r3_f_init(mrb_state *mrb, mrb_value self)
 {
-    mrb_int capa, len = 5;
+    mrb_int capa = 5;
     mrb_sym data, routes;
 
-    len = mrb_get_args(mrb, "|i", &capa);
+    mrb_get_args(mrb, "|i", &capa);
 
     if (capa <= 0)
         mrb_raise(mrb, E_RANGE_ERROR, "Capa cannot be lower then zero.");
