@@ -265,13 +265,13 @@ assert 'R3::Tree#routes' do
   assert_kind_of Array, tree.routes
   assert_true tree.routes.empty?
 
-  tree.add '/user/{name}', R3::GET
+  tree.add '/user/{foo}', R3::GET
   assert_equal 1, tree.routes.size
-  assert_equal 'GET /user/{name}', tree.routes[0]
+  assert_equal 'GET /user/{foo}', tree.routes[0]
 
-  tree.add '/user/{name}', R3::DELETE
+  tree.add '/user/{bar}', R3::DELETE
   assert_equal 2, tree.routes.size
-  assert_equal 'DELETE /user/{name}', tree.routes[1]
+  assert_equal 'DELETE /user/{bar}', tree.routes[1]
 
   tree.free
   assert_true tree.routes.empty?
