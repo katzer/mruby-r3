@@ -97,6 +97,9 @@ mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, char *route, i
         case METHOD_HEAD:
             sprintf(buf, "HEAD %s", route);
             break;
+        default:
+            sprintf(buf, "ANY %s", route);
+            break;
     }
 
     data = mrb_str_new_cstr(mrb, buf);
@@ -137,11 +140,10 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
 
     mrb_get_args(mrb, "s|io?", &path, &path_len, &method, &data, &data_given);
 
-    path_str = mrb_str_new_cstr(mrb, path);
-    path = mrb_str_to_cstr(mrb, path_str);
+    path_str = mrb_str_new_static(mrb, path, path_len);
+    path     = mrb_str_to_cstr(mrb, path_str);
     mrb_r3_chomp_path(path, &path_len);
 
-    mrb_r3_save_data(mrb, self, path_str);
     if (data_given) {
         mrb_r3_save_data(mrb, self, data);
         r3_tree_insert_routel(tree, method, path, path_len, mrb_ptr(data));
@@ -149,6 +151,7 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
         r3_tree_insert_routel(tree, method, path, path_len, NULL);
     }
 
+    mrb_r3_save_data(mrb, self, path_str);
     mrb_r3_save_route(mrb, self, method, path, path_len);
 
     return mrb_nil_value();
@@ -158,15 +161,15 @@ static mrb_value
 mrb_r3_f_compile(mrb_state *mrb, mrb_value self)
 {
     int ret;
-    char *errstr = NULL;
+    char *err = NULL;
     R3Node *tree = DATA_PTR(self);
 
     mrb_get_args(mrb, "");
 
-    ret = r3_tree_compile(tree, &errstr);
+    ret = r3_tree_compile(tree, &err);
 
-    if (errstr)
-        mrb_sys_fail(mrb, errstr);
+    if (err)
+        mrb_sys_fail(mrb, err);
 
     return mrb_fixnum_value(ret);
 }
@@ -273,7 +276,8 @@ mrb_r3_f_free(mrb_state *mrb, mrb_value self)
 
     mrb_iv_remove(mrb, self, mrb_intern_lit(mrb, "data"));
     r3_tree_free(tree);
-    DATA_PTR(self) = NULL;
+
+    DATA_PTR(self)  = NULL;
     DATA_TYPE(self) = NULL;
 
     return mrb_true_value();
