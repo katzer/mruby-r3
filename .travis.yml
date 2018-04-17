@@ -32,7 +32,7 @@ env:
 
 matrix:
   allow_failures:
-  - env: MRUBY_VERSION=1.4.0
+  - env: MRUBY_VERSION=head
 
 before_script:
 - export TOOLCHAIN=$CC
