@@ -66,7 +66,7 @@ mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 }
 
 static void
-mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, char *route, int len)
+mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, const char *route, int len)
 {
     mrb_sym attr;
     mrb_value ary, data;
@@ -132,7 +132,7 @@ static mrb_value
 mrb_r3_f_add(mrb_state *mrb, mrb_value self)
 {
     mrb_int path_len, method = 0;
-    char *path;
+    const char *path;
     R3Node *tree = DATA_PTR(self);
     mrb_value data = mrb_nil_value();
     mrb_bool data_given;
@@ -140,9 +140,9 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
 
     mrb_get_args(mrb, "s|io?", &path, &path_len, &method, &data, &data_given);
 
-    path_str = mrb_str_new_static(mrb, path, path_len);
-    path     = mrb_str_to_cstr(mrb, path_str);
-    mrb_r3_chomp_path(path, &path_len);
+    path_str = mrb_str_new(mrb, path, path_len);
+    path     = mrb_string_value_ptr(mrb, path_str);
+    mrb_r3_chomp_path((char *)path, &path_len);
 
     if (data_given) {
         mrb_r3_save_data(mrb, self, data);
