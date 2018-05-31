@@ -194,7 +194,7 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
     route = r3_tree_match_route(tree, entry);
 
     match_entry_free(entry);
-    free(path);
+    mrb_free(mrb, path);
 
     return mrb_bool_value(route? TRUE : FALSE);
 }
@@ -231,7 +231,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
 
     if (!route) {
         match_entry_free(entry);
-        free(path);
+        mrb_free(mrb, path);
         return mrb_nil_value();
     }
 
@@ -252,7 +252,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     }
 
     match_entry_free(entry);
-    free(path);
+    mrb_free(mrb, path);
 
     if (data_given == 0)
         return params;
