@@ -174,7 +174,7 @@ int r3_tree_compile(R3Node *n, char **errstr)
 int r3_tree_compile_patterns(R3Node * n, char **errstr) {
     R3Edge *e;
     char * p;
-    char * cpat = zcalloc(sizeof(char) * 64 * 3); // XXX
+    char * cpat = r3_zcalloc(sizeof(char) * 64 * 3); // XXX
     if (!cpat) {
         asprintf(errstr, "Can not allocate memory");
         return -1;

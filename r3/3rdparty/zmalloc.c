@@ -137,8 +137,7 @@ void *zmalloc(size_t size) {
 #endif
 }
 
-#ifndef HAVE_LIBZ
-void *zcalloc(size_t size) {
+void *r3_zcalloc(size_t size) {
     void *ptr = calloc(1, size+PREFIX_SIZE);
 
     if (!ptr) zmalloc_oom_handler(size);
@@ -151,7 +150,6 @@ void *zcalloc(size_t size) {
     return (char*)ptr+PREFIX_SIZE;
 #endif
 }
-#endif
 
 void *zrealloc(void *ptr, size_t size) {
 #ifndef HAVE_MALLOC_SIZE

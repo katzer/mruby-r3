@@ -195,7 +195,7 @@ char * r3_slug_compile(const char * str, unsigned int len)
     }
 
     char * out = NULL;
-    if (!(out = zcalloc(sizeof(char) * 200))) {
+    if (!(out = r3_zcalloc(sizeof(char) * 200))) {
         return (NULL);
     }
 
