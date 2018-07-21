@@ -33,6 +33,10 @@
 #include "r3.h"
 #include <stdio.h>
 
+#ifdef _MSC_VER
+# define strdup _strdup
+#endif
+
 static void
 mrb_r3_tree_free(mrb_state *mrb, void *p)
 {
@@ -70,7 +74,11 @@ mrb_r3_save_route(mrb_state *mrb, mrb_value self, mrb_int method, const char *ro
 {
     mrb_sym attr;
     mrb_value ary, data;
+#ifdef _MSC_VER
+    char buf[256];
+#else
     char buf[len + 8];
+#endif
 
     attr = mrb_intern_lit(mrb, "@routes");
     ary  = mrb_iv_get(mrb, self, attr);
@@ -123,7 +131,7 @@ mrb_r3_f_init(mrb_state *mrb, mrb_value self)
     routes = mrb_intern_lit(mrb, "@routes");
     mrb_iv_set(mrb, self, routes, mrb_ary_new_capa(mrb, capa));
 
-    mrb_data_init(self, r3_tree_create(capa), &mrb_r3_tree_type);
+    mrb_data_init(self, r3_tree_create((int)capa), &mrb_r3_tree_type);
 
     return self;
 }
@@ -146,13 +154,13 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
 
     if (data_given) {
         mrb_r3_save_data(mrb, self, data);
-        r3_tree_insert_routel(tree, method, path, path_len, mrb_ptr(data));
+        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, mrb_ptr(data));
     } else {
-        r3_tree_insert_routel(tree, method, path, path_len, NULL);
+        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, NULL);
     }
 
     mrb_r3_save_data(mrb, self, path_str);
-    mrb_r3_save_route(mrb, self, method, path, path_len);
+    mrb_r3_save_route(mrb, self, method, path, (int)path_len);
 
     return mrb_nil_value();
 }
@@ -188,8 +196,8 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
     path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
-    entry = match_entry_createl(path, path_len);
-    entry->request_method = method;
+    entry = match_entry_createl(path, (int)path_len);
+    entry->request_method = (int)method;
 
     route = r3_tree_match_route(tree, entry);
 
@@ -224,8 +232,8 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     path = strdup(path);
     mrb_r3_chomp_path(path, &path_len);
 
-    entry                 = match_entry_createl(path, path_len);
-    entry->request_method = method;
+    entry                 = match_entry_createl(path, (int)path_len);
+    entry->request_method = (int)method;
     tree                  = DATA_PTR(self);
     route                 = r3_tree_match_route(tree, entry);
 

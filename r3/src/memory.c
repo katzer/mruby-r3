@@ -34,8 +34,18 @@
 # include "mman.h"
 # include "getpagesize.c"
 #endif
-#include <unistd.h>
+#ifdef _MSC_VER
+# include <io.h>
+# include <malloc.h>
+#else
+# include <unistd.h>
+#endif
 #include "memory.h"
+
+#ifdef _MSC_VER
+# define ftruncate(fd, size) _chsize_s(fd, size)
+# define mkstemp(path) fopen(path, "w")
+#endif
 
 struct st_r3_mem_recycle_chunk_t {
     struct st_r3_mem_recycle_chunk_t *next;
@@ -60,7 +70,11 @@ struct st_r3_mem_pool_shared_ref_t {
 
 void *(*r3_mem__set_secure)(void *, int, size_t) = memset;
 
+#ifdef _MSC_VER
+static __declspec(thread) r3_mem_recycle_t mempool_allocator = {16};
+#else
 static __thread r3_mem_recycle_t mempool_allocator = {16};
+#endif
 
 void r3_fatal(const char *msg)
 {

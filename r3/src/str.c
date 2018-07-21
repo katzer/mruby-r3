@@ -4,6 +4,7 @@
  *
  * Distributed under terms of the MIT license.
  */
+#include "asprintf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

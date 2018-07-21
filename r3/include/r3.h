@@ -37,6 +37,13 @@ typedef unsigned char bool;
 #include "r3_slug.h"
 #include "memory.h"
 
+#ifdef __GNUC__
+# define R3_ALIGN(x) __attribute__((aligned(x)))
+#elif defined _MSC_VER
+# define R3_ALIGN(x) __declspec(align(x))
+#else
+# define R3_ALIGN(x)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +74,7 @@ struct _node  {
     void * data;
 
     // almost less than 255
-} __attribute__((aligned(64)));
+} R3_ALIGN(64);
 
 #define r3_node_edge_pattern(node,i) node->edges.entries[i].pattern.base
 #define r3_node_edge_pattern_len(node,i) node->edges.entries[i].pattern.len
@@ -78,7 +85,7 @@ struct _edge {
     // unsigned int pattern_len; // 4byte
     unsigned int opcode; // 4byte
     unsigned int has_slug; // 4byte
-} __attribute__((aligned(64)));
+} R3_ALIGN(64);
 
 struct _R3Route {
     r3_iovec_t path;
@@ -89,7 +96,7 @@ struct _R3Route {
     void * data;
 
     r3_iovec_t remote_addr_pattern;
-} __attribute__((aligned(64)));
+} R3_ALIGN(64);
 
 typedef struct _R3Entry match_entry;
 struct _R3Entry {
@@ -101,7 +108,7 @@ struct _R3Entry {
 
     r3_iovec_t host; // the request host
     r3_iovec_t remote_addr;
-} __attribute__((aligned(64)));
+} R3_ALIGN(64);
 
 
 R3Node * r3_tree_create(int cap);
