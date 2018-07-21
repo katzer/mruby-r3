@@ -36,10 +36,9 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   pcre_h = Pathname.new("#{build.build_dir}/../mrbgems/mruby-regexp-pcre/pcre")
                    .cleanpath.to_s
 
-  spec.cc.defines       += %w[HAVE_STRDUP _GNU_SOURCE]
-  spec.cc.defines       += %w[HAVE_STRNDUP] unless target_win32?
+  spec.cc.defines << 'HAVE_STRDUP'
+  spec.cc.defines << 'HAVE_STRNDUP' unless target_win32?
   spec.cc.include_paths += %W[#{r3_dir}/include #{r3_src}]
-  spec.linker.libraries << 'pthread'
 
   if Dir.exist? pcre_h
     spec.cc.defines       << 'HAVE_PCRE_H'
@@ -48,6 +47,7 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   end
 
   files = %W[
+    #{r3_src}/asprintf.c
     #{r3_src}/edge.c
     #{r3_src}/match_entry.c
     #{r3_src}/memory.c
