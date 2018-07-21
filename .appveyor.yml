@@ -20,35 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-version: "{build}"
+image: Visual Studio 2017
 
 environment:
   global:
-    TOOLCHAIN: gcc
+    COMPILER: C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64
   matrix:
-  - MRUBY_VERSION: 1.4.0
-    COMPILER: C:\MinGW # MinGW 5.3.0
+  - MRUBY_VERSION: stable
+    TOOLCHAIN: gcc
+  - MRUBY_VERSION: stable
+    TOOLCHAIN: visualcpp
   - MRUBY_VERSION: head
-    COMPILER: C:\MinGW
-  - MRUBY_VERSION: 1.4.0
-    COMPILER: C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0 # MinGW-w64 5.3.0
+    TOOLCHAIN: gcc
   - MRUBY_VERSION: head
-    COMPILER: C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0
-  - MRUBY_VERSION: 1.4.0
-    COMPILER: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1 # MinGW-w64 6.3.0
-  - MRUBY_VERSION: head
-    COMPILER: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1
+    TOOLCHAIN: visualcpp
 
 matrix:
   allow_failures:
   - MRUBY_VERSION: head
-  - COMPILER: C:\MinGW
+  - TOOLCHAIN: visualcpp
 
 init:
-- SET PATH=C:\Windows\system32;C:\Windows;C:\Program Files\Git\cmd;%PATH%
-- SET PATH=%COMPILER%\bin;C:\Ruby25-x64\bin;%PATH%;C:\cygwin\bin;
-- gcc --version
-- ruby --version
+- SET PATH=%COMPILER%\bin;C:\Ruby25-x64\bin;%PATH%;C:\cygwin64\bin
+- IF "%TOOLCHAIN%" == "visualcpp" (CALL "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat")
+- IF "%TOOLCHAIN%" == "gcc" (gcc --version)
 
 build_script:
 - rake compile
