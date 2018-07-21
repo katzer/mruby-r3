@@ -12,19 +12,43 @@
 #include "r3_slug.h"
 #include "str.h"
 #include "slug.h"
-#include "zmalloc.h"
 
-// PCRE
-#ifdef HAVE_PCRE_H
-# include "config.h"
-#endif
-
-static char * strnchr(const char* str, unsigned int len, int ch) {
+static const char * strnchr(const char* str, unsigned int len, int ch) {
     for (unsigned int i = 0; i < len; i++) {
         if (str[i] == ch) return str + i;
     }
     return NULL;
 }
+
+#ifndef HAVE_STRDUP
+static char *strdup(const char *s) {
+    char *out;
+    int count = 0;
+    while( s[count] )
+        ++count;
+    ++count;
+    out = malloc(sizeof(char) * count);
+    out[--count] = 0;
+    while( --count >= 0 )
+        out[count] = s[count];
+    return out;
+}
+#endif
+
+#ifndef HAVE_STRNDUP
+static char *strndup(const char *s, int n) {
+    char *out;
+    int count = 0;
+    while( count < n && s[count] )
+        ++count;
+    ++count;
+    out = malloc(sizeof(char) * count);
+    out[--count] = 0;
+    while( --count >= 0 )
+        out[count] = s[count];
+    return out;
+}
+#endif
 
 int r3_pattern_to_opcode(const char * pattern, unsigned int len) {
     if ( strncmp(pattern, "\\w+",len) == 0 ) {
@@ -90,11 +114,11 @@ char * r3_inside_slug(const char * needle, int needle_len, char *offset, char **
     return NULL;
 }
 
-char * r3_slug_find_placeholder(const char *s1, unsigned int str_len, unsigned int *len) {
-    char *c;
-    char *s2;
+const char * r3_slug_find_placeholder(const char *s1, unsigned int str_len, unsigned int *len) {
+    const char *c;
+    const char *s2;
     int cnt = 0;
-    if (c = strnchr(s1, str_len, '{')) {
+    if ((c = strnchr(s1, str_len, '{'))) {
         // find closing '}'
         s2 = c;
         unsigned int j = str_len - (c - s1);
@@ -123,9 +147,9 @@ char * r3_slug_find_placeholder(const char *s1, unsigned int str_len, unsigned i
 /**
  * given a slug string, duplicate the pattern string of the slug
  */
-char * r3_slug_find_pattern(const char *s1, unsigned int str_len, unsigned int *len) {
-    char *c;
-    char *s2;
+const char * r3_slug_find_pattern(const char *s1, unsigned int str_len, unsigned int *len) {
+    const char *c;
+    const char *s2;
     unsigned int cnt = 1;
     if ( (c = strnchr(s1, str_len, ':')) ) {
         c++;
@@ -156,14 +180,13 @@ char * r3_slug_find_pattern(const char *s1, unsigned int str_len, unsigned int *
 /**
  * given a slug string, duplicate the parameter name string of the slug
  */
-char * r3_slug_find_name(const char *s1, unsigned int str_len, unsigned int *len) {
-    char * c;
-    char * s2;
-    int cnt = 0;
+const char * r3_slug_find_name(const char *s1, unsigned int str_len, unsigned int *len) {
+    const char * c;
+    const char * s2;
     unsigned int plholder;
-    if (c = r3_slug_find_placeholder(s1, str_len, &plholder)) {
+    if ((c = r3_slug_find_placeholder(s1, str_len, &plholder))) {
         c++;
-        if ( s2 = strnchr(c, plholder, ':') ) {
+        if (( s2 = strnchr(c, plholder, ':') )) {
             *len = s2 - c;
             return c;
         } else {
@@ -181,8 +204,9 @@ char * r3_slug_find_name(const char *s1, unsigned int str_len, unsigned int *len
  */
 char * r3_slug_compile(const char * str, unsigned int len)
 {
-    char *s1 = NULL, *o = NULL;
-    char *pat = NULL;
+    const char *s1 = NULL;
+    char *o = NULL;
+    const char *pat = NULL;
     char sep = '/';
 
 
@@ -191,11 +215,11 @@ char * r3_slug_compile(const char * str, unsigned int len)
     s1 = r3_slug_find_placeholder(str, len, &s1_len);
 
     if ( !s1 ) {
-        return zstrndup(str,len);
+        return strndup(str,len);
     }
 
     char * out = NULL;
-    if (!(out = r3_zcalloc(sizeof(char) * 200))) {
+    if (!(out = calloc(1, sizeof(char) * 200))) {
         return (NULL);
     }
 
@@ -231,7 +255,7 @@ char * ltrim_slash(char* str)
 {
     char * p = str;
     while (*p == '/') p++;
-    return zstrdup(p);
+    return strdup(p);
 }
 
 void print_indent(int level) {
@@ -240,37 +264,3 @@ void print_indent(int level) {
         printf(" ");
     }
 }
-
-
-
-#ifndef HAVE_STRDUP
-char *zstrdup(const char *s) {
-    char *out;
-    int count = 0;
-    while( s[count] )
-        ++count;
-    ++count;
-    out = zmalloc(sizeof(char) * count);
-    out[--count] = 0;
-    while( --count >= 0 )
-        out[count] = s[count];
-    return out;
-}
-#endif
-
-
-
-#ifndef HAVE_STRNDUP
-char *zstrndup(const char *s, int n) {
-    char *out;
-    int count = 0;
-    while( count < n && s[count] )
-        ++count;
-    ++count;
-    out = zmalloc(sizeof(char) * count);
-    out[--count] = 0;
-    while( --count >= 0 )
-        out[count] = s[count];
-    return out;
-}
-#endif

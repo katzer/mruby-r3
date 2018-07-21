@@ -19,6 +19,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,14 +28,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 #if defined(__APPLE__) || defined(__linux__)
 # include <sys/mman.h>
 #else
 # include "mman.h"
 # include "getpagesize.c"
 #endif
-
 #include <unistd.h>
 #include "memory.h"
 
@@ -59,13 +58,9 @@ struct st_r3_mem_pool_shared_ref_t {
     struct st_r3_mem_pool_shared_entry_t *entry;
 };
 
-void *(*r3_mem__set_secure)(void *, int, unsigned int) = memset;
+void *(*r3_mem__set_secure)(void *, int, size_t) = memset;
 
-#ifdef __thread
-    static __thread r3_mem_recycle_t mempool_allocator = {16};
-#else
-    static r3_mem_recycle_t mempool_allocator = {16};
-#endif
+static __thread r3_mem_recycle_t mempool_allocator = {16};
 
 void r3_fatal(const char *msg)
 {

@@ -22,12 +22,9 @@
 #ifndef r3__memory_h
 #define r3__memory_h
 
-#if defined(__APPLE__) || defined(__linux__)
-# include <alloca.h>
-#else
-# include <malloc.h>
+#ifdef __sun__
+#include <alloca.h>
 #endif
-
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -76,7 +73,7 @@ typedef struct st_r3_buffer_prototype_t r3_buffer_prototype_t;
  * buffer structure compatible with iovec
  */
 typedef struct st_r3_iovec_t {
-    char *base;
+    const char *base;
     unsigned int len;
 } r3_iovec_t;
 
@@ -149,7 +146,7 @@ struct st_r3_buffer_prototype_t {
 
 typedef R3_VECTOR(void) r3_vector_t;
 
-extern void *(*r3_mem__set_secure)(void *, int, unsigned int);
+extern void *(*r3_mem__set_secure)(void *, int, size_t);
 
 /**
  * prints an error message and aborts
