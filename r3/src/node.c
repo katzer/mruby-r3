@@ -6,7 +6,6 @@
 
 // PCRE
 #ifdef HAVE_PCRE_H
-# include "config.h"
 # include <pcre.h>
 #endif
 
@@ -15,7 +14,6 @@
 #include "slug.h"
 #include "str.h"
 #include "r3_debug.h"
-#include "zmalloc.h"
 
 #ifdef __GNUC__
 #	define likely(x)   __builtin_expect(!!(x), 1)
@@ -30,14 +28,29 @@
 // String value as the index http://judy.sourceforge.net/doc/JudySL_3x.htm
 
 
-static int strndiff(char * d1, char * d2, unsigned int n) {
-    char * o = d1;
+static int strndiff(const char * d1, const char * d2, unsigned int n) {
+    const char * o = d1;
     while ( *d1 == *d2 && n-- > 0 ) {
         d1++;
         d2++;
     }
     return d1 - o;
 }
+
+#ifndef HAVE_STRNDUP
+static char *strndup(const char *s, int n) {
+    char *out;
+    int count = 0;
+    while( count < n && s[count] )
+        ++count;
+    ++count;
+    out = malloc(sizeof(char) * count);
+    out[--count] = 0;
+    while( --count >= 0 )
+        out[count] = s[count];
+    return out;
+}
+#endif
 
 /*
 static int strdiff(char * d1, char * d2) {
@@ -85,7 +98,7 @@ void r3_tree_free(R3Node * tree) {
         pcre_free_study(tree->pcre_extra);
     }
 #endif
-    zfree(tree->combined_pattern);
+    free(tree->combined_pattern);
     free(tree);
     tree = NULL;
 }
@@ -103,7 +116,7 @@ R3Edge * r3_node_connectl(R3Node * n, const char * pat, int len, int dupl, R3Nod
         return e;
     }
     if (dupl) {
-        pat = zstrndup(pat, len);
+        pat = strndup(pat, len);
     }
     // e = r3_edge_createl(pat, len, child);
     e = r3_node_append_edge(n);
@@ -148,7 +161,7 @@ int r3_tree_compile(R3Node *n, char **errstr)
     int ret = 0;
     // bool use_slug = r3_node_has_slug_edges(n);
     if ( r3_node_has_slug_edges(n) ) {
-        if ( ret = r3_tree_compile_patterns(n, errstr) ) {
+        if (( ret = r3_tree_compile_patterns(n, errstr) )) {
             return ret;
         }
     } else {
@@ -174,7 +187,7 @@ int r3_tree_compile(R3Node *n, char **errstr)
 int r3_tree_compile_patterns(R3Node * n, char **errstr) {
     R3Edge *e;
     char * p;
-    char * cpat = r3_zcalloc(sizeof(char) * 64 * 3); // XXX
+    char * cpat = calloc(1, sizeof(char) * 64 * 3); // XXX
     if (!cpat) {
         asprintf(errstr, "Can not allocate memory");
         return -1;
@@ -194,7 +207,7 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
             char * slug_pat = r3_slug_compile(e->pattern.base, e->pattern.len);
             info("slug_pat for pattern: %s\n",slug_pat);
             strcat(p, slug_pat);
-            zfree(slug_pat);
+            free(slug_pat);
             info("temp pattern: %s\n",cpat);
         } else {
             strncat(p,"^(", 2);
@@ -215,13 +228,14 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
 
     // if all edges use opcode, we should skip the combined_pattern.
     if ( opcode_cnt == n->edges.size ) {
-        // zfree(cpat);
+        // free(cpat);
         n->compare_type = NODE_COMPARE_OPCODE;
     } else {
         n->compare_type = NODE_COMPARE_PCRE;
     }
     info("COMPARE_TYPE: %d\n",n->compare_type);
 
+    free(n->combined_pattern);
     n->combined_pattern = cpat;
 #ifdef HAVE_PCRE_H
     const char *pcre_error;
@@ -329,9 +343,10 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
             e++;
         }
     }
-#ifdef HAVE_PCRE_H
+
     // if the pcre_pattern is found, and the pointer is not NULL, then it's
     // pcre pattern node, we use pcre_exec to match the nodes
+#ifdef HAVE_PCRE_H
     if (n->pcre_pattern) {
         info("COMPARE PCRE_PATTERN\n");
         const char *substring_start = 0;
@@ -429,7 +444,7 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
 #endif
     info("COMPARE COMPARE_STR\n");
 
-    if (e = r3_node_find_edge_str(n, path, path_len)) {
+    if ((e = r3_node_find_edge_str(n, path, path_len))) {
         restlen = path_len - e->pattern.len;
         if (!restlen) {
             return e->child && e->child->endpoint ? e->child : NULL;
@@ -479,7 +494,7 @@ inline R3Edge * r3_node_find_edge_str(const R3Node * n, const char * str, int st
 }
 
 // R3Node * r3_node_create() {
-//     R3Node * n = (R3Node*) zmalloc( sizeof(R3Node) );
+//     R3Node * n = (R3Node*) malloc( sizeof(R3Node) );
 //     CHECK_PTR(n);
 //     n->edges = NULL;
 //     n->edge_len = 0;
@@ -507,12 +522,12 @@ void r3_route_free(R3Route * route) {
 // }
 
 // static bool router_slugs_resize(R3Route * route, int new_cap) {
-//     route->slugs = zrealloc(route->slugs, sizeof(char**) * new_cap);
+//     route->slugs = realloc(route->slugs, sizeof(char**) * new_cap);
 //     route->slugs_cap = new_cap;
 //     return route->slugs != NULL;
 // }
 
-static r3_iovec_t* router_append_slug(R3Route * route, char * slug, unsigned int len) {
+static r3_iovec_t* router_append_slug(R3Route * route, const char * slug, unsigned int len) {
     r3_iovec_t *temp;
     r3_vector_reserve(NULL, &route->slugs, route->slugs.size + 1);
     temp = route->slugs.entries + route->slugs.size++;
@@ -522,10 +537,10 @@ static r3_iovec_t* router_append_slug(R3Route * route, char * slug, unsigned int
 }
 
 static void get_slugs(R3Route * route, const char * path, int path_len) {
-    char *plh = (char*)path;
+    const char *plh = path;
     unsigned int l, namel;
     l = 0;
-    char *name;
+    const char *name;
     while (plh < (path + path_len)) {
         plh = r3_slug_find_placeholder(plh+l, path_len, &l);
         if (!plh) break;
@@ -688,7 +703,7 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
         info("slug_cnt: %d\n",slug_cnt);
         if ( slug_cnt > 1 ) {
             unsigned int   slug_len;
-            char *p = r3_slug_find_placeholder(path, path_len, &slug_len);
+            const char *p = r3_slug_find_placeholder(path, path_len, &slug_len);
 
 #ifdef DEBUG
             assert(p);
@@ -704,7 +719,6 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
 
             // insert the first one edge, and break at "p"
             R3Node * child = r3_tree_create(3);
-            unsigned int paln = p - path;
             r3_node_connectl(n, path, p - path, 0, child); // no duplicate
 
             // and insert the rest part to the child
@@ -714,9 +728,9 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
             if (slug_cnt == 1) {
                 // there is one slug, let's see if it's optimiz-able by opcode
                 unsigned int   slug_len = 0;
-                char *slug_p = r3_slug_find_placeholder(path, path_len, &slug_len);
+                const char *slug_p = r3_slug_find_placeholder(path, path_len, &slug_len);
                 unsigned int   slug_pattern_len = 0;
-                char *slug_pattern = r3_slug_find_pattern(slug_p, slug_len, &slug_pattern_len);
+                const char *slug_pattern = r3_slug_find_pattern(slug_p, slug_len, &slug_pattern_len);
 
                 int opcode = 0;
                 // if there is a pattern defined.
@@ -725,7 +739,7 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
                     info("cpattern: %s\n", cpattern);
                     opcode = r3_pattern_to_opcode(cpattern, strlen(cpattern));
                     info("opcode: %d\n", opcode);
-                    zfree(cpattern);
+                    free(cpattern);
                 } else {
                     opcode = OP_EXPECT_NOSLASH;
                 }
@@ -922,11 +936,11 @@ inline int r3_route_cmp(const R3Route *r1, const match_entry *r2) {
 
 //     if (n->routes == NULL) {
 //         n->route_cap = 3;
-//         n->routes = zmalloc(sizeof(R3Route) * n->route_cap);
+//         n->routes = malloc(sizeof(R3Route) * n->route_cap);
 //     }
 //     if (n->route_len >= n->route_cap) {
 //         n->route_cap *= 2;
-//         n->routes = zrealloc(n->routes, sizeof(R3Route) * n->route_cap);
+//         n->routes = realloc(n->routes, sizeof(R3Route) * n->route_cap);
 //     }
 //     n->routes[ n->route_len++ ] = r;
 // }

@@ -31,33 +31,33 @@ MRuby::Gem::Specification.new('mruby-r3') do |spec|
   spec.summary = 'Router dispatcher'
 
   r3_dir = "#{spec.dir}/r3"
-  rd_dir = "#{r3_dir}/3rdparty"
+  r3_src = "#{r3_dir}/src"
 
   pcre_h = Pathname.new("#{build.build_dir}/../mrbgems/mruby-regexp-pcre/pcre")
                    .cleanpath.to_s
 
-  spec.cc.flags         += %w[-DHAVE_STRDUP -DHAVE_STRNDUP -D_GNU_SOURCE]
-  spec.cc.include_paths += %W[#{r3_dir}/include #{rd_dir}]
+  spec.cc.defines       += %w[HAVE_STRDUP _GNU_SOURCE]
+  spec.cc.defines       += %w[HAVE_STRNDUP] unless target_win32?
+  spec.cc.include_paths += %W[#{r3_dir}/include #{r3_src}]
   spec.linker.libraries << 'pthread'
 
   if Dir.exist? pcre_h
-    spec.cc.flags         << '-DHAVE_PCRE_H'
+    spec.cc.defines       << 'HAVE_PCRE_H'
     spec.cc.include_paths << pcre_h
-    [spec.cc, spec.linker].each { |cc| cc.flags << '-DPCRE_STATIC' }
+    [spec.cc, spec.linker].each { |cc| cc.defines << 'PCRE_STATIC' }
   end
 
   files = %W[
-    #{r3_dir}/src/edge.c
-    #{r3_dir}/src/match_entry.c
-    #{r3_dir}/src/memory.c
-    #{r3_dir}/src/node.c
-    #{r3_dir}/src/slug.c
-    #{r3_dir}/src/str.c
-    #{r3_dir}/src/token.c
-    #{rd_dir}/zmalloc.c
+    #{r3_src}/edge.c
+    #{r3_src}/match_entry.c
+    #{r3_src}/memory.c
+    #{r3_src}/node.c
+    #{r3_src}/slug.c
+    #{r3_src}/str.c
+    #{r3_src}/token.c
   ]
 
-  files += %W[#{rd_dir}/mman.c #{rd_dir}/getpagesize.c] if target_win32?
+  files += %W[#{r3_src}/mman.c #{r3_src}/getpagesize.c] if target_win32?
 
   files.map! do |f|
     f.relative_path_from(dir).pathmap("#{build_dir}/%X#{spec.exts.object}")

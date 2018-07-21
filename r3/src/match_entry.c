@@ -10,13 +10,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
-// PCRE
-#ifdef HAVE_PCRE_H
-# include "config.h"
-#endif
-
 #include "r3.h"
-#include "zmalloc.h"
 
 match_entry * match_entry_createl(const char * path, int path_len) {
     match_entry * entry = r3_mem_alloc( sizeof(match_entry) );

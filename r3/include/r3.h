@@ -11,13 +11,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// PCRE
 #ifdef HAVE_PCRE_H
 # include <pcre.h>
 #endif
 
 #ifdef HAVE_STDBOOL_H
-# include <stdbool.h>
+
+#include <stdbool.h>
+
 #else
 
 #if !defined(bool) && !defined(__cplusplus)
@@ -52,7 +53,6 @@ struct _node  {
     R3_VECTOR(R3Edge) edges;
     R3_VECTOR(R3Route) routes;
     char * combined_pattern;
-
 #ifdef HAVE_PCRE_H
     pcre * pcre_pattern;
     pcre_extra * pcre_extra;
