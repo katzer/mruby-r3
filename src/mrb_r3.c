@@ -57,16 +57,20 @@ mrb_r3_chomp_path(char *path, mrb_int *len)
     path[*len] = '\0';
 }
 
-static inline void
+static inline mrb_value
+mrb_r3_data_ary(mrb_state *mrb, mrb_value self)
+{
+    return mrb_iv_get(mrb, self, mrb_intern_static(mrb, "@data", 5));
+}
+
+static inline mrb_value
 mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 {
-    mrb_sym attr;
-    mrb_value ary;
-
-    attr = mrb_intern_lit(mrb, "data");
-    ary  = mrb_iv_get(mrb, self, attr);
+    mrb_value ary = mrb_r3_data_ary(mrb, self);
 
     mrb_ary_push(mrb, ary, data);
+
+    return mrb_fixnum_value(RARRAY_LEN(ary));
 }
 
 static void
@@ -125,7 +129,7 @@ mrb_r3_f_init(mrb_state *mrb, mrb_value self)
     if (capa <= 0)
         mrb_raise(mrb, E_RANGE_ERROR, "Capa cannot be lower then zero.");
 
-    data = mrb_intern_lit(mrb, "data");
+    data = mrb_intern_lit(mrb, "@data");
     mrb_iv_set(mrb, self, data, mrb_ary_new_capa(mrb, capa));
 
     routes = mrb_intern_lit(mrb, "@routes");
@@ -153,8 +157,7 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     mrb_r3_chomp_path((char *)path, &path_len);
 
     if (data_given) {
-        mrb_r3_save_data(mrb, self, data);
-        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, mrb_ptr(data));
+        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, mrb_ptr(mrb_r3_save_data(mrb, self, data)));
     } else {
         r3_tree_insert_routel(tree, (int)method, path, (int)path_len, NULL);
     }
@@ -204,7 +207,7 @@ mrb_r3_f_matches(mrb_state *mrb, mrb_value self)
     match_entry_free(entry);
     mrb_free(mrb, path);
 
-    return mrb_bool_value(route? TRUE : FALSE);
+    return mrb_bool_value(route ? TRUE : FALSE);
 }
 
 static mrb_value
@@ -219,13 +222,14 @@ mrb_r3_f_mismatches(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_r3_f_match(mrb_state *mrb, mrb_value self)
 {
-    mrb_int path_len, method = 0, i, data_given = 0;
+    mrb_int path_len, method = 0, i;
     char *path;
     R3Node *tree;
     R3Route *route;
     match_entry *entry;
     r3_iovec_t *slugs, *tokens;
-    mrb_value params, data, val, key;
+    mrb_value params, val, key;
+    mrb_value data = mrb_nil_value();
 
     mrb_get_args(mrb, "s|i", &path, &path_len, &method);
 
@@ -244,8 +248,8 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     }
 
     if (route->data) {
-        data_given = 1;
-        data = mrb_obj_value(route->data);
+        i    = mrb_fixnum(mrb_cptr_value(mrb, route->data));
+        data = mrb_ary_entry(mrb_r3_data_ary(mrb, self), i - 1);
     }
 
     params = mrb_hash_new(mrb);
@@ -262,7 +266,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     match_entry_free(entry);
     mrb_free(mrb, path);
 
-    if (data_given == 0)
+    if (mrb_nil_p(data))
         return params;
 
     return mrb_assoc_new(mrb, params, data);
