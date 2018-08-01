@@ -47,7 +47,7 @@ mrb_r3_tree_free(mrb_state *mrb, void *p)
 
 static mrb_data_type const mrb_r3_tree_type = { "R3::Tree", mrb_r3_tree_free };
 
-static void
+static inline void
 mrb_r3_chomp_path(char *path, mrb_int *len)
 {
     if (*len == 1 || path[*len - 1] != '/')
@@ -57,7 +57,7 @@ mrb_r3_chomp_path(char *path, mrb_int *len)
     path[*len] = '\0';
 }
 
-static void
+static inline void
 mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 {
     mrb_sym attr;
