@@ -25,36 +25,35 @@ assert 'R3' do
 end
 
 assert 'R3::ANY' do
-  assert_include R3.constants, :ANY
   assert_equal 0, R3::ANY
 end
 
 assert 'R3::GET' do
-  assert_include R3.constants, :GET
+  assert_kind_of Integer, R3::GET
 end
 
 assert 'R3::POST' do
-  assert_include R3.constants, :POST
+  assert_kind_of Integer, R3::POST
 end
 
 assert 'R3::PUT' do
-  assert_include R3.constants, :PUT
+  assert_kind_of Integer, R3::PUT
 end
 
 assert 'R3::DELETE' do
-  assert_include R3.constants, :DELETE
+  assert_kind_of Integer, R3::DELETE
 end
 
 assert 'R3::PATCH' do
-  assert_include R3.constants, :PATCH
+  assert_kind_of Integer, R3::PATCH
 end
 
 assert 'R3::HEAD' do
-  assert_include R3.constants, :HEAD
+  assert_kind_of Integer, R3::HEAD
 end
 
 assert 'R3::OPTIONS' do
-  assert_include R3.constants, :OPTIONS
+  assert_kind_of Integer, R3::OPTIONS
 end
 
 assert 'R3::method_code' do
