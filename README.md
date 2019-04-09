@@ -1,4 +1,4 @@
-# mruby-r3 [![Build Status](https://travis-ci.org/katzer/mruby-r3.svg?branch=master)](https://travis-ci.org/katzer/mruby-r3) [![Build status](https://ci.appveyor.com/api/projects/status/dhiknegayv8k18mw/branch/master?svg=true)](https://ci.appveyor.com/project/katzer/mruby-r3/branch/master)
+# mruby-r3 [![Build Status](https://travis-ci.com/katzer/mruby-r3.svg?branch=master)](https://travis-ci.com/katzer/mruby-r3) [![Build status](https://ci.appveyor.com/api/projects/status/dhiknegayv8k18mw/branch/master?svg=true)](https://ci.appveyor.com/project/katzer/mruby-r3/branch/master)
 
 mruby binding for [libr3][r3], a high-performance path dispatching library.
 
@@ -143,7 +143,7 @@ Run the tests:
 
 The mgem is available as open source under the terms of the [MIT License][license].
 
-Made with :yum: from Leipzig
+Made with :yum: in Leipzig
 
 © 2017 [appPlant GmbH][appplant]
 
