@@ -96,6 +96,12 @@ struct _R3Route {
     void * data;
 
     r3_iovec_t remote_addr_pattern;
+
+    unsigned int remote_addr_v4;
+    int          remote_addr_v4_bits;
+
+    int          http_scheme;   // can be (SCHEME_HTTP or SCHEME_HTTPS)
+
 } R3_ALIGN(64);
 
 typedef struct _R3Entry match_entry;
@@ -108,6 +114,8 @@ struct _R3Entry {
 
     r3_iovec_t host; // the request host
     r3_iovec_t remote_addr;
+
+    int          http_scheme;
 } R3_ALIGN(64);
 
 
@@ -204,13 +212,16 @@ R3Route * r3_tree_match_route(const R3Node *n, match_entry * entry);
 #define METHOD_HEAD 2<<5
 #define METHOD_OPTIONS 2<<6
 
+#define SCHEME_HTTP     2
+#define SCHEME_HTTPS    2<<1
 
 
 int r3_pattern_to_opcode(const char * pattern, unsigned int len);
 
 enum { NODE_COMPARE_STR, NODE_COMPARE_PCRE, NODE_COMPARE_OPCODE };
 
-enum { OP_EXPECT_MORE_DIGITS = 1, OP_EXPECT_MORE_WORDS, OP_EXPECT_NOSLASH, OP_EXPECT_NODASH, OP_EXPECT_MORE_ALPHA };
+enum { OP_EXPECT_MORE_DIGITS = 1, OP_EXPECT_MORE_WORDS, OP_EXPECT_NOSLASH,
+       OP_EXPECT_NODASH, OP_EXPECT_MORE_ALPHA, OP_GREEDY_ANY};
 
 
 

@@ -4,6 +4,9 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#ifndef _WIN32
+# include <arpa/inet.h>
+#endif
 
 // PCRE
 #ifdef HAVE_PCRE_H
@@ -190,7 +193,8 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
     char * p;
     char * cpat = calloc(1, sizeof(char) * 64 * 3); // XXX
     if (!cpat) {
-        asprintf(errstr, "Can not allocate memory");
+        int r = asprintf(errstr, "Can not allocate memory");
+        if (r) {};
         return -1;
     }
 
@@ -239,7 +243,7 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
     free(n->combined_pattern);
     n->combined_pattern = cpat;
 #ifdef HAVE_PCRE_H
-    const char *pcre_error;
+    const char *pcre_error = NULL;
     int pcre_erroffset;
     unsigned int option_bits = 0;
 
@@ -256,7 +260,8 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
             NULL);                /* use default character tables */
     if (n->pcre_pattern == NULL) {
         if (errstr) {
-            asprintf(errstr, "PCRE compilation failed at offset %d: %s, pattern: %s", pcre_erroffset, pcre_error, n->combined_pattern);
+            int r = asprintf(errstr, "PCRE compilation failed at offset %d: %s, pattern: %s", pcre_erroffset, pcre_error, n->combined_pattern);
+            if (r) {};
         }
         return -1;
     }
@@ -266,9 +271,10 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
         pcre_free_study(n->pcre_extra);
     }
     n->pcre_extra = pcre_study(n->pcre_pattern, 0, &pcre_error);
-    if (!n->pcre_extra) {
+    if (!n->pcre_extra && pcre_error) {
         if (errstr) {
-            asprintf(errstr, "PCRE study failed at offset %s, pattern: %s", pcre_error, n->combined_pattern);
+            int r = asprintf(errstr, "PCRE study failed at offset %s, pattern: %s", pcre_error, n->combined_pattern);
+            if (r) {};
         }
         return -1;
     }
@@ -277,20 +283,8 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
 }
 
 
-
-
-
-/**
- * This function matches the URL path and return the left node
- *
- * r3_tree_matchl returns NULL when the path does not match. returns *node when the path matches.
- *
- * @param node         n        the root of the tree
- * @param char*        path     the URL path to dispatch
- * @param int          path_len the length of the URL path.
- * @param match_entry* entry match_entry is used for saving the captured dynamic strings from pcre result.
- */
-R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_len, match_entry * entry) {
+static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
+    unsigned int path_len, match_entry * entry, int is_end) {
     info("try matching: %s\n", path);
 
     R3Edge *e;
@@ -300,9 +294,9 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
     const char *pp;
     const char *pp_end;
 
-    info("n->compare_type: %d\n",n->compare_type);
+    info("n->compare_type: %d\n", n->compare_type);
 #ifdef HAVE_PCRE_H
-    info("n->pcre_pattern: %s\n",n->pcre_pattern);
+    info("n->pcre_pattern: %s\n", (char *)n->pcre_pattern);
 #endif
 
     if (n->compare_type == NODE_COMPARE_OPCODE) {
@@ -329,9 +323,25 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
                 case OP_EXPECT_NODASH:
                     while (*pp != '-' && pp < pp_end) pp++;
                     break;
+                case OP_GREEDY_ANY:
+                    while (*pp != '\n' && pp < pp_end) pp++;
+                    break;
             }
+
             // check match
-            if ((pp - path) > 0) {
+            if (e->opcode != OP_GREEDY_ANY) {
+                if ((pp - path) > 0) {
+                    if (entry) {
+                        str_array_append(&entry->vars , path, pp - path);
+                    }
+                    restlen = pp_end - pp;
+                    if (!restlen) {
+                        return e->child && e->child->endpoint ? e->child : NULL;
+                    }
+                    return r3_tree_matchl(e->child, pp, restlen, entry);
+                }
+
+            } else {
                 if (entry) {
                     str_array_append(&entry->vars , path, pp - path);
                 }
@@ -339,8 +349,9 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
                 if (!restlen) {
                     return e->child && e->child->endpoint ? e->child : NULL;
                 }
-                return r3_tree_matchl(e->child, pp, restlen, entry);
+                return r3_tree_matchl_base(e->child, pp, restlen, entry, is_end);
             }
+
             e++;
         }
     }
@@ -355,7 +366,7 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
         int   ov[ n->ov_cnt ];
         int   rc;
 
-        info("pcre matching %s on %s\n", n->combined_pattern, path);
+        info("pcre matching %s on [%s]\n", n->combined_pattern, path);
 
         rc = pcre_exec(
                 n->pcre_pattern, /* the compiled pattern */
@@ -397,7 +408,7 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
                 substring_length = *(inv+1) - *inv;
 
                 // if it's not matched for this edge, just skip them quickly
-                if ( !substring_length ) {
+                if (!is_end && !substring_length) {
                     inv += 2;
                     continue;
                 }
@@ -423,7 +434,7 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
             substring_length = *(inv+1) - *inv;
 
             // if it's not matched for this edge, just skip them quickly
-            if ( !substring_length ) {
+            if (!is_end && !substring_length) {
                 inv += 2;
                 continue;
             }
@@ -437,7 +448,7 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
             }
 
             // get the length of orginal string: $0
-            return r3_tree_matchl( e->child, path + (ov[1] - ov[0]), restlen, entry);
+            return r3_tree_matchl_base( e->child, path + (ov[1] - ov[0]), restlen, entry, is_end);
         }
         // does not match
         return NULL;
@@ -448,11 +459,36 @@ R3Node * r3_tree_matchl(const R3Node * n, const char * path, unsigned int path_l
     if ((e = r3_node_find_edge_str(n, path, path_len))) {
         restlen = path_len - e->pattern.len;
         if (!restlen) {
-            return e->child && e->child->endpoint ? e->child : NULL;
+            if (is_end) {
+                return e->child && e->child->endpoint ? e->child : NULL;
+            }
+
+            R3Node *n = r3_tree_matchl_base(e->child, path + e->pattern.len, restlen, entry, 1);
+            if (n == NULL) {
+                return e->child && e->child->endpoint ? e->child : NULL;
+            }
+
+            return n;
         }
-        return r3_tree_matchl(e->child, path + e->pattern.len, restlen, entry);
+        return r3_tree_matchl_base(e->child, path + e->pattern.len, restlen, entry, is_end);
     }
     return NULL;
+}
+
+
+/**
+ * This function matches the URL path and return the left node
+ *
+ * r3_tree_matchl returns NULL when the path does not match. returns *node when the path matches.
+ *
+ * @param node         n        the root of the tree
+ * @param char*        path     the URL path to dispatch
+ * @param int          path_len the length of the URL path.
+ * @param match_entry* entry match_entry is used for saving the captured dynamic strings from pcre result.
+ */
+R3Node * r3_tree_matchl(const R3Node * n, const char * path,
+    unsigned int path_len, match_entry * entry) {
+    return r3_tree_matchl_base(n, path, path_len, entry, 0);
 }
 
 
@@ -906,23 +942,48 @@ inline int r3_route_cmp(const R3Route *r1, const match_entry *r2) {
         }
     }
 
-    if ( r1->host.len && r2->host.len ) {
-        if (strncmp(r1->host.base, r2->host.base, r2->host.len)) {
+    if (r1->http_scheme) {
+        if (0 == (r1->http_scheme & r2->http_scheme) ) {
             return -1;
         }
     }
 
-    if (r1->remote_addr_pattern.len && r2->remote_addr.len) {
-        /*
-         * XXX: consider "netinet/in.h"
-        if (r2->remote_addr) {
-            inet_addr(r2->remote_addr);
+    if ( r1->host.len && r2->host.len ) {
+        if (r1->host.len > r2->host.len) {
+            return -1;
         }
-        */
+
+        int r1_i = r1->host.len - 1;
+        int r2_i = r2->host.len - 1;
+        for(; r1_i >= 0 ; r1_i--, r2_i--) {
+            if (r1_i == 0 && r1->host.base[0] == '*') {
+                break;
+            }
+
+            if (r2->host.base[r2_i] != r1->host.base[r1_i]) {
+                return -1;
+            }
+        }
+    }
+
+    if (r1->remote_addr_pattern.len && r2->remote_addr.len) {
         if ( strncmp(r1->remote_addr_pattern.base, r2->remote_addr.base, r2->remote_addr.len) ) {
             return -1;
         }
     }
+#ifndef _WIN32
+    if (r1->remote_addr_v4 > 0 && r1->remote_addr_v4_bits > 0) {
+        if (!r2->remote_addr.base) {
+            return -1;
+        }
+
+        unsigned int r2_addr2 = inet_network(r2->remote_addr.base);
+        int bits = 32 - r1->remote_addr_v4_bits;
+        if (r1->remote_addr_v4 >> bits != r2_addr2 >> bits) {
+            return -1;
+        }
+    }
+#endif
     return 0;
 }
 
