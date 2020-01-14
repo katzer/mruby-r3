@@ -19,9 +19,10 @@
 #ifdef __GNUC__
 int vscprintf(const char *format, va_list ap)
 {
+    int retval;
     va_list ap_copy;
     va_copy(ap_copy, ap);
-    int retval = vsnprintf(NULL, 0, format, ap_copy);
+    retval = vsnprintf(NULL, 0, format, ap_copy);
     va_end(ap_copy);
     return retval;
 }
@@ -53,9 +54,10 @@ int vasprintf(char **strp, const char *format, va_list ap)
 
 int asprintf(char **strp, const char *format, ...)
 {
+    int retval;
     va_list ap;
     va_start(ap, format);
-    int retval = vasprintf(strp, format, ap);
+    retval = vasprintf(strp, format, ap);
     va_end(ap);
     return retval;
 }
