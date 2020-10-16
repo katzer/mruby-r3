@@ -63,14 +63,14 @@ mrb_r3_data_ary(mrb_state *mrb, mrb_value self)
     return mrb_iv_get(mrb, self, mrb_intern_static(mrb, "@data", 5));
 }
 
-static inline mrb_value
+static inline mrb_int
 mrb_r3_save_data(mrb_state *mrb, mrb_value self, mrb_value data)
 {
     mrb_value ary = mrb_r3_data_ary(mrb, self);
 
     mrb_ary_push(mrb, ary, data);
 
-    return mrb_fixnum_value(RARRAY_LEN(ary));
+    return RARRAY_LEN(ary);
 }
 
 static void
@@ -157,7 +157,7 @@ mrb_r3_f_add(mrb_state *mrb, mrb_value self)
     mrb_r3_chomp_path((char *)path, &path_len);
 
     if (data_given) {
-        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, mrb_ptr(mrb_r3_save_data(mrb, self, data)));
+        r3_tree_insert_routel(tree, (int)method, path, (int)path_len, (void*)mrb_r3_save_data(mrb, self, data));
     } else {
         r3_tree_insert_routel(tree, (int)method, path, (int)path_len, NULL);
     }
@@ -248,7 +248,7 @@ mrb_r3_f_match(mrb_state *mrb, mrb_value self)
     }
 
     if (route->data) {
-        i    = mrb_fixnum(mrb_cptr_value(mrb, route->data));
+        i    = (mrb_int)route->data;
         data = mrb_ary_entry(mrb_r3_data_ary(mrb, self), i - 1);
     }
 
