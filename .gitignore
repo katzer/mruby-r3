@@ -35,3 +35,4 @@
 # mruby
 /mruby
 /tmp
+build_config.rb.lock
