@@ -5,7 +5,12 @@
 extern "C" {
 #endif
 
+#if defined(__GNUC__) && ! defined(_GNU_SOURCE)
+# define _GNU_SOURCE
+# include <stdio.h>
+#elif defined(_MSC_VER)
 int asprintf(char **strp, const char *format, ...);
+#endif
 
 #ifdef __cplusplus
 }
