@@ -86,11 +86,10 @@ int r3_slug_parse(r3_slug_t *s, const char *needle, int needle_len, const char *
     }
 
     // there is no slug
-    if (!r3_path_contains_slug_char(offset, needle_len)) {
+    if (!r3_path_contains_slug_char(offset, needle_len - (offset-needle))) {
         return 0;
     }
 
-    int cnt = 0;
     int state = 0;
     const char * p = offset;
 
@@ -122,7 +121,6 @@ int r3_slug_parse(r3_slug_t *s, const char *needle, int needle_len, const char *
             if (s->pattern) {
                 s->pattern_len = p - s->pattern;
             }
-            cnt++;
             state--;
             p++;
             break;

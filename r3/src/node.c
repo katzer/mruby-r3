@@ -7,6 +7,7 @@
 #ifndef _WIN32
 # include <arpa/inet.h>
 #endif
+#include <netinet/in.h>
 
 // PCRE
 #ifdef HAVE_PCRE_H
@@ -41,21 +42,6 @@ static int strndiff(const char * d1, const char * d2, unsigned int n) {
     return d1 - o;
 }
 
-#ifndef HAVE_STRNDUP
-static char *strndup(const char *s, int n) {
-    char *out;
-    int count = 0;
-    while( count < n && s[count] )
-        ++count;
-    ++count;
-    out = malloc(sizeof(char) * count);
-    out[--count] = 0;
-    while( --count >= 0 )
-        out[count] = s[count];
-    return out;
-}
-#endif
-
 /*
 static int strdiff(char * d1, char * d2) {
     char * o = d1;
@@ -75,9 +61,9 @@ R3Node * r3_tree_create(int cap) {
     R3Node * n = r3_mem_alloc( sizeof(R3Node) );
     memset(n, 0, sizeof(*n));
 
-    r3_vector_reserve(NULL, &n->edges, n->edges.size + cap);
+    r3_vector_reserve(&n->edges, n->edges.size + cap);
 
-    r3_vector_reserve(NULL, &n->routes, n->routes.size + 1);
+    r3_vector_reserve(&n->routes, n->routes.size + 1);
 
     n->compare_type = NODE_COMPARE_PCRE;
     return n;
@@ -94,12 +80,10 @@ void r3_tree_free(R3Node * tree) {
     free(tree->routes.entries);
 #ifdef HAVE_PCRE_H
     if (tree->pcre_pattern) {
-        pcre_free(tree->pcre_pattern);
+        pcre2_code_free(tree->pcre_pattern);
     }
-#endif
-#ifdef PCRE_STUDY_JIT_COMPILE
-    if (tree->pcre_extra) {
-        pcre_free_study(tree->pcre_extra);
+    if (tree->match_data) {
+        pcre2_match_data_free(tree->match_data);
     }
 #endif
     free(tree->combined_pattern);
@@ -131,7 +115,7 @@ R3Edge * r3_node_connectl(R3Node * n, const char * pat, int len, int dupl, R3Nod
 
 R3Edge * r3_node_append_edge(R3Node *n)
 {
-    r3_vector_reserve(NULL, &n->edges, n->edges.size + 1);
+    r3_vector_reserve(&n->edges, n->edges.size + 1);
     R3Edge *new_e = n->edges.entries + n->edges.size++;
     memset(new_e, 0, sizeof(*new_e));
     return new_e;
@@ -243,38 +227,42 @@ int r3_tree_compile_patterns(R3Node * n, char **errstr) {
     free(n->combined_pattern);
     n->combined_pattern = cpat;
 #ifdef HAVE_PCRE_H
-    const char *pcre_error = NULL;
-    int pcre_erroffset;
+
+    int pcre_errorcode = 0;
+    PCRE2_SIZE pcre_erroffset = 0;
     unsigned int option_bits = 0;
 
-    n->ov_cnt = (1 + n->edges.size) * 3;
-
     if (n->pcre_pattern) {
-        pcre_free(n->pcre_pattern);
+        pcre2_code_free(n->pcre_pattern);
     }
-    n->pcre_pattern = pcre_compile(
-            n->combined_pattern,              /* the pattern */
+    n->pcre_pattern = pcre2_compile(
+            (PCRE2_SPTR)n->combined_pattern,  /* the pattern, 8-bit code units */
+            PCRE2_ZERO_TERMINATED,
             option_bits,                                /* default options */
-            &pcre_error,               /* for error message */
+            &pcre_errorcode,           /* for error code */
             &pcre_erroffset,           /* for error offset */
-            NULL);                /* use default character tables */
+            NULL);                     /* compile context */
     if (n->pcre_pattern == NULL) {
         if (errstr) {
-            int r = asprintf(errstr, "PCRE compilation failed at offset %d: %s, pattern: %s", pcre_erroffset, pcre_error, n->combined_pattern);
-            if (r) {};
+            PCRE2_UCHAR buf[128];
+            pcre2_get_error_message(pcre_errorcode, buf, sizeof(buf));
+            int r = asprintf(errstr, "PCRE compilation failed at offset %ld: %s, pattern: %s", pcre_erroffset, buf, n->combined_pattern);
+            if (r < 0) {
+                *errstr = NULL; /* the content of errstr is undefined when asprintf() fails */
+            }
         }
         return -1;
     }
-#endif
-#ifdef PCRE_STUDY_JIT_COMPILE
-    if (n->pcre_extra) {
-        pcre_free_study(n->pcre_extra);
+    if (n->match_data) {
+        pcre2_match_data_free(n->match_data);
     }
-    n->pcre_extra = pcre_study(n->pcre_pattern, 0, &pcre_error);
-    if (!n->pcre_extra && pcre_error) {
+    n->match_data = pcre2_match_data_create_from_pattern(n->pcre_pattern, NULL);
+    if (n->match_data == NULL) {
         if (errstr) {
-            int r = asprintf(errstr, "PCRE study failed at offset %s, pattern: %s", pcre_error, n->combined_pattern);
-            if (r) {};
+            int r = asprintf(errstr, "Failed to allocate match data block");
+            if (r < 0) {
+                *errstr = NULL; /* the content of errstr is undefined when asprintf() fails */
+            }
         }
         return -1;
     }
@@ -363,20 +351,18 @@ static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
         info("COMPARE PCRE_PATTERN\n");
         const char *substring_start = 0;
         int   substring_length = 0;
-        int   ov[ n->ov_cnt ];
         int   rc;
 
         info("pcre matching %s on [%s]\n", n->combined_pattern, path);
 
-        rc = pcre_exec(
+        rc = pcre2_match(
                 n->pcre_pattern, /* the compiled pattern */
-                n->pcre_extra,
-                path,         /* the subject string */
+                (PCRE2_SPTR)path,/* the subject string, 8-bit code units */
                 path_len,     /* the length of the subject */
                 0,            /* start at offset 0 in the subject */
                 0,            /* default options */
-                ov,           /* output vector for substring information */
-                n->ov_cnt);      /* number of elements in the output vector */
+                n->match_data,/* match data results */
+                NULL);        /* match context */
 
         // does not match all edges, return NULL;
         if (rc < 0) {
@@ -384,7 +370,7 @@ static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
             printf("pcre rc: %d\n", rc );
             switch(rc)
             {
-                case PCRE_ERROR_NOMATCH:
+                case PCRE2_ERROR_NOMATCH:
                     printf("pcre: no match '%s' on pattern '%s'\n", path, n->combined_pattern);
                     break;
 
@@ -397,23 +383,22 @@ static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
             return NULL;
         }
 
-
+        PCRE2_SIZE *ov = pcre2_get_ovector_pointer(n->match_data);
 
         restlen = path_len - ov[1]; // if it's fully matched to the end (rest string length)
-        int *inv = ov + 2;
+
         if (!restlen) {
             // Check the substring to decide we should go deeper on which edge
             for (i = 1; i < rc; i++)
             {
-                substring_length = *(inv+1) - *inv;
+                substring_length = ov[2*i+1] - ov[2*i];
 
                 // if it's not matched for this edge, just skip them quickly
                 if (!is_end && !substring_length) {
-                    inv += 2;
                     continue;
                 }
 
-                substring_start = path + *inv;
+                substring_start = path + ov[2*i];
                 e = n->edges.entries + i - 1;
 
                 if (entry && e->has_slug) {
@@ -428,18 +413,16 @@ static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
 
 
         // Check the substring to decide we should go deeper on which edge
-        inv = ov + 2;
         for (i = 1; i < rc; i++)
         {
-            substring_length = *(inv+1) - *inv;
+            substring_length = ov[2*i+1] - ov[2*i];
 
             // if it's not matched for this edge, just skip them quickly
             if (!is_end && !substring_length) {
-                inv += 2;
                 continue;
             }
 
-            substring_start = path + *inv;
+            substring_start = path + ov[2*i];
             e = n->edges.entries + i - 1;
 
             if (entry && e->has_slug) {
@@ -454,6 +437,7 @@ static R3Node * r3_tree_matchl_base(const R3Node * n, const char * path,
         return NULL;
     }
 #endif
+
     info("COMPARE COMPARE_STR\n");
 
     if ((e = r3_node_find_edge_str(n, path, path_len))) {
@@ -544,7 +528,6 @@ inline R3Edge * r3_node_find_edge_str(const R3Node * n, const char * str, int st
 //     n->endpoint = 0;
 //     n->combined_pattern = NULL;
 //     n->pcre_pattern = NULL;
-//     n->pcre_extra = NULL;
 //     n->data = NULL;
 //     return n;
 // }
@@ -566,7 +549,7 @@ void r3_route_free(R3Route * route) {
 
 static r3_iovec_t* router_append_slug(R3Route * route, const char * slug, unsigned int len) {
     r3_iovec_t *temp;
-    r3_vector_reserve(NULL, &route->slugs, route->slugs.size + 1);
+    r3_vector_reserve(&route->slugs, route->slugs.size + 1);
     temp = route->slugs.entries + route->slugs.size++;
     temp->base = slug;
     temp->len = len;
@@ -575,27 +558,25 @@ static r3_iovec_t* router_append_slug(R3Route * route, const char * slug, unsign
 
 static void get_slugs(R3Route * route, const char * path, int path_len) {
     const char *plh = path;
-    unsigned int l, namel;
-    l = 0;
     const char *name;
+    unsigned int plhl, namel;
     while (plh < (path + path_len)) {
-        plh = r3_slug_find_placeholder(plh+l, path_len, &l);
+        plh = r3_slug_find_placeholder(plh, path_len-(plh-path), &plhl);
         if (!plh) break;
-        namel = 0;
-        name = r3_slug_find_name(plh, l, &namel);
+        name = r3_slug_find_name(plh, plhl, &namel);
         if (name) {
             router_append_slug(route, name, namel);
         }
-        if ((plh + l) >= (path + path_len)) break;
+        plh += plhl;
     }
 }
 
 R3Route * r3_node_append_route(R3Node *tree, const char * path, int path_len, int method, void *data) {
-    r3_vector_reserve(NULL, &tree->routes, tree->routes.size + 1);
+    r3_vector_reserve(&tree->routes, tree->routes.size + 1);
     R3Route *info = tree->routes.entries + tree->routes.size++;
     memset(info, 0, sizeof(*info));
 
-    r3_vector_reserve(NULL, &info->slugs, info->slugs.size + 3);
+    r3_vector_reserve(&info->slugs, info->slugs.size + 3);
     info->path.base = (char*) path;
     info->path.len = path_len;
     info->request_method = method; // ALLOW GET OR POST METHOD
@@ -615,6 +596,9 @@ R3Route * r3_node_append_route(R3Node *tree, const char * path, int path_len, in
  */
 R3Route * r3_tree_insert_routel_ex(R3Node *tree, int method, const char *path, int path_len, void *data, char **errstr) {
     R3Node * ret = r3_tree_insert_pathl_ex(tree, path, path_len, method, 1, data, errstr);
+    if (ret == NULL) {
+        return NULL;
+    }
     R3Route *router = ret->routes.entries + (ret->routes.size - 1);
     get_slugs(router, path, path_len);
 
@@ -637,17 +621,18 @@ R3Route * r3_tree_insert_routel_ex(R3Node *tree, int method, const char *path, i
  */
 R3Edge * r3_node_find_common_prefix(R3Node *n, const char *path, int path_len, int *prefix_len, char **errstr) {
     unsigned int i = 0;
-    int prefix = 0;
+    int edge_prefix, prefix = 0;
     *prefix_len = 0;
     R3Edge *e = NULL;
-    for(i = 0 ; i < n->edges.size ; i++ ) {
+    // Check all edges to find the most common prefix
+    for(i = 0; i < n->edges.size; i++) {
         // ignore all edges with slug
-        prefix = strndiff( (char*) path, n->edges.entries[i].pattern.base, n->edges.entries[i].pattern.len);
+        edge_prefix = strndiff( (char*) path, n->edges.entries[i].pattern.base, n->edges.entries[i].pattern.len);
 
         // no common, consider insert a new edge
-        if ( prefix > 0 ) {
+        if (edge_prefix > prefix) {
+            prefix = edge_prefix;
             e = n->edges.entries + i;
-            break;
         }
     }
 
@@ -714,6 +699,7 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
             r3_node_append_route(tree, path, path_len, method, data);
             info("tree router path is: %s, with len: %d\n", path, path_len);
         }
+        tree->data = data;
         return tree;
     }
 
@@ -722,8 +708,12 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
     char *err = NULL;
     e = r3_node_find_common_prefix(tree, path, path_len, &prefix_len, &err);
     if (err) {
-        // copy the error message pointer
-        if (errstr) *errstr = err;
+        if (errstr) {
+            // copy the error message pointer
+            *errstr = err;
+        } else {
+            free(err);
+        }
         return NULL;
     }
 
@@ -741,18 +731,11 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
         if ( slug_cnt > 1 ) {
             unsigned int   slug_len;
             const char *p = r3_slug_find_placeholder(path, path_len, &slug_len);
-
-#ifdef DEBUG
             assert(p);
-#endif
 
             // find the next one '{', then break there
-            if(p) {
-                p = r3_slug_find_placeholder(p + slug_len + 1, path_len - slug_len - 1, NULL);
-            }
-#ifdef DEBUG
+            p = r3_slug_find_placeholder(p + slug_len + 1, path_len - slug_len - 1, NULL);
             assert(p);
-#endif
 
             // insert the first one edge, and break at "p"
             R3Node * child = r3_tree_create(3);
@@ -766,6 +749,7 @@ R3Node * r3_tree_insert_pathl_ex(R3Node *tree, const char *path, unsigned int pa
                 // there is one slug, let's see if it's optimiz-able by opcode
                 unsigned int   slug_len = 0;
                 const char *slug_p = r3_slug_find_placeholder(path, path_len, &slug_len);
+                assert(slug_p);
                 unsigned int   slug_pattern_len = 0;
                 const char *slug_pattern = r3_slug_find_pattern(slug_p, slug_len, &slug_pattern_len);
 
@@ -971,19 +955,48 @@ inline int r3_route_cmp(const R3Route *r1, const match_entry *r2) {
             return -1;
         }
     }
-#ifndef _WIN32
-    if (r1->remote_addr_v4 > 0 && r1->remote_addr_v4_bits > 0) {
+
+    if (r1->remote_addr_v4_bits > 0) {
         if (!r2->remote_addr.base) {
             return -1;
         }
 
-        unsigned int r2_addr2 = inet_network(r2->remote_addr.base);
+        uint32_t addr;
+        if(inet_pton(AF_INET, r2->remote_addr.base, (void *)&addr) != 1) {
+            return -1;
+        }
+
+        unsigned int r2_addr = ntohl(addr);
         int bits = 32 - r1->remote_addr_v4_bits;
-        if (r1->remote_addr_v4 >> bits != r2_addr2 >> bits) {
+        if (r1->remote_addr_v4 >> bits != r2_addr >> bits) {
             return -1;
         }
     }
-#endif
+
+    info("r1 v6_bits[0]: %d\n", r1->remote_addr_v6_bits[0]);
+    if (r1->remote_addr_v6_bits[0] > 0) {
+        if (!r2->remote_addr.base) {
+            return -1;
+        }
+
+        struct in6_addr    addr6;
+        if(inet_pton(AF_INET6, r2->remote_addr.base, (void *)&addr6) != 1) {
+            return -1;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int bits = 32 - r1->remote_addr_v6_bits[i];
+            if (bits == 32) {
+                continue;
+            }
+
+            unsigned int r2_addr = ntohl(*((uint32_t *)(&addr6.s6_addr[4*i])));
+            if (r1->remote_addr_v6[i] >> bits != r2_addr >> bits) {
+                return -1;
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -993,7 +1006,7 @@ inline int r3_route_cmp(const R3Route *r1, const match_entry *r2) {
  */
 // void r3_node_append_route(R3Node * n, R3Route * r)
 // {
-//     r3_vector_reserve(NULL, &n->routes, n->routes.size + 1);
+//     r3_vector_reserve(&n->routes, n->routes.size + 1);
 //     memset(n->routes.entries + 1, 0, sizeof(*n->routes.entries));
 
 //     if (n->routes == NULL) {

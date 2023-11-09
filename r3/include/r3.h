@@ -10,40 +10,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
 
 #ifdef HAVE_PCRE_H
 # include <pcre.h>
 #endif
-
+#if __STDC_VERSION__ <= 201710L
 #ifdef HAVE_STDBOOL_H
-
-#include <stdbool.h>
-
-#else
-
-#if !defined(bool) && !defined(__cplusplus)
+#  include <stdbool.h>
+#elif !defined(bool) && !defined(__cplusplus)
 typedef unsigned char bool;
+#  define bool bool /* For redefinition guards */
+#  define false 0
+#  define true 1
 #endif
-#ifndef false
-#    define false 0
-#endif
-#ifndef true
-#    define true 1
-#endif
-
 #endif
 
 #include "str_array.h"
 #include "r3_slug.h"
 #include "memory.h"
 
-#ifdef __GNUC__
-# define R3_ALIGN(x) __attribute__((aligned(x)))
-#elif defined _MSC_VER
-# define R3_ALIGN(x) __declspec(align(x))
-#else
-# define R3_ALIGN(x)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,20 +47,17 @@ struct _node  {
     R3_VECTOR(R3Route) routes;
     char * combined_pattern;
 #ifdef HAVE_PCRE_H
-    pcre * pcre_pattern;
-    pcre_extra * pcre_extra;
+    pcre2_code * pcre_pattern;
+    pcre2_match_data * match_data;
 #endif
 
     // edges are mostly less than 255
     unsigned int compare_type; // compare_type: pcre, opcode, string
     unsigned int endpoint; // endpoint, should be zero for non-endpoint nodes
-    unsigned int ov_cnt; // capture vector array size for pcre
 
     // the pointer of R3Route data
     void * data;
-
-    // almost less than 255
-} R3_ALIGN(64);
+};
 
 #define r3_node_edge_pattern(node,i) node->edges.entries[i].pattern.base
 #define r3_node_edge_pattern_len(node,i) node->edges.entries[i].pattern.len
@@ -82,10 +65,9 @@ struct _node  {
 struct _edge {
     r3_iovec_t pattern; // 8 bytes
     R3Node * child; // 8 bytes
-    // unsigned int pattern_len; // 4byte
     unsigned int opcode; // 4byte
     unsigned int has_slug; // 4byte
-} R3_ALIGN(64);
+};
 
 struct _R3Route {
     r3_iovec_t path;
@@ -100,9 +82,12 @@ struct _R3Route {
     unsigned int remote_addr_v4;
     int          remote_addr_v4_bits;
 
+    unsigned int remote_addr_v6[4];
+    int          remote_addr_v6_bits[4];
+
     int          http_scheme;   // can be (SCHEME_HTTP or SCHEME_HTTPS)
 
-} R3_ALIGN(64);
+};
 
 typedef struct _R3Entry match_entry;
 struct _R3Entry {
@@ -116,7 +101,7 @@ struct _R3Entry {
     r3_iovec_t remote_addr;
 
     int          http_scheme;
-} R3_ALIGN(64);
+};
 
 
 R3Node * r3_tree_create(int cap);

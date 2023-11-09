@@ -21,36 +21,6 @@ static const char * strnchr(const char* str, unsigned int len, int ch) {
     return NULL;
 }
 
-#ifndef HAVE_STRDUP
-static char *strdup(const char *s) {
-    char *out;
-    int count = 0;
-    while( s[count] )
-        ++count;
-    ++count;
-    out = malloc(sizeof(char) * count);
-    out[--count] = 0;
-    while( --count >= 0 )
-        out[count] = s[count];
-    return out;
-}
-#endif
-
-#ifndef HAVE_STRNDUP
-static char *strndup(const char *s, int n) {
-    char *out;
-    int count = 0;
-    while( count < n && s[count] )
-        ++count;
-    ++count;
-    out = malloc(sizeof(char) * count);
-    out[--count] = 0;
-    while( --count >= 0 )
-        out[count] = s[count];
-    return out;
-}
-#endif
-
 int r3_pattern_to_opcode(const char * pattern, unsigned int len) {
     if ( strncmp(pattern, "\\w+",len) == 0 ) {
         return OP_EXPECT_MORE_WORDS;
@@ -269,3 +239,37 @@ void print_indent(int level) {
         printf(" ");
     }
 }
+
+
+
+#ifndef HAVE_STRDUP
+char *strdup(const char *s) {
+    char *out;
+    int count = 0;
+    while( s[count] )
+        ++count;
+    ++count;
+    out = malloc(sizeof(char) * count);
+    out[--count] = 0;
+    while( --count >= 0 )
+        out[count] = s[count];
+    return out;
+}
+#endif
+
+
+
+#ifndef HAVE_STRNDUP
+char *strndup(const char *s, int n) {
+    char *out;
+    int count = 0;
+    while( count < n && s[count] )
+        ++count;
+    ++count;
+    out = malloc(sizeof(char) * count);
+    out[--count] = 0;
+    while( --count >= 0 )
+        out[count] = s[count];
+    return out;
+}
+#endif
