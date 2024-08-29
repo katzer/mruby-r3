@@ -4,10 +4,20 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#ifndef _WIN32
+#include <stdint.h>
+#ifdef _WIN32
+# ifdef __GNUC__
+#  if (_WIN32_WINNT < 0x0600)
+#   undef _WIN32_WINNT
+#   define _WIN32_WINNT 0x0600
+#  endif
+# endif
+# include <winsock2.h>
+# include <ws2tcpip.h>
+#else
 # include <arpa/inet.h>
+# include <netinet/in.h>
 #endif
-#include <netinet/in.h>
 
 // PCRE
 #ifdef HAVE_PCRE_H

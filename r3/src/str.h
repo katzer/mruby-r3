@@ -7,6 +7,14 @@ extern "C" {
 
 void print_indent(int level);
 
+#ifndef HAVE_STRDUP
+char *strdup(const char *s);
+#endif
+
+#ifndef HAVE_STRNDUP
+char *strndup(const char *s, long long unsigned int n);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
